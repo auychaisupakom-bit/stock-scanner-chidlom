@@ -1,0 +1,2078 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>นับสต๊อก · Scanner</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #0099cc;
+    --green: #00e676;
+    --red: #ff5252;
+    --yellow: #ffd740;
+    --text: #e8f4fd;
+    --muted: #6b8cae;
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+  }
+  .topbar-sub { font-size: 11px; color: var(--muted); }
+
+  .badge {
+    background: var(--accent);
+    color: var(--bg);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 57px;
+    z-index: 99;
+  }
+  .tab {
+    flex: 1;
+    padding: 12px 0;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* ── PAGES ── */
+  .page { display: none; padding: 16px; }
+  .page.active { display: block; }
+
+  /* ── SCANNER PAGE ── */
+  .scanner-wrapper {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 16px;
+    position: relative;
+  }
+
+  #reader {
+    width: 100% !important;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  #reader video { border-radius: 0 !important; }
+  #reader img { display: none !important; }
+
+  /* Scanner region */
+
+  .scan-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .scan-frame {
+    width: 200px;
+    height: 200px;
+    position: relative;
+  }
+  .scan-frame::before, .scan-frame::after,
+  .scan-frame span::before, .scan-frame span::after {
+    content: '';
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-color: var(--accent);
+    border-style: solid;
+  }
+  .scan-frame::before { top: 0; left: 0; border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+  .scan-frame::after  { top: 0; right: 0; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+  .scan-frame span::before { bottom: 0; left: 0; border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+  .scan-frame span::after  { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+
+  .scan-line {
+    position: absolute;
+    left: 10px; right: 10px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: scanAnim 2s ease-in-out infinite;
+    top: 10px;
+  }
+  @keyframes scanAnim {
+    0%   { top: 10px; opacity: 1; }
+    50%  { top: calc(100% - 10px); opacity: 1; }
+    100% { top: 10px; opacity: 1; }
+  }
+
+  .scan-hint {
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 10px 0 4px;
+  }
+
+  .expiry-banner {
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    display: none;
+    animation: slideUp 0.3s ease;
+  }
+  .expiry-expired  { background: rgba(255,82,82,0.15); border: 2px solid rgba(255,82,82,0.5); }
+  .expiry-critical { background: rgba(255,82,82,0.08); border: 1px solid rgba(255,82,82,0.4); }
+  .expiry-warn     { background: rgba(255,215,64,0.08); border: 1px solid rgba(255,215,64,0.4); }
+  .expiry-ok       { background: rgba(0,230,118,0.06); border: 1px solid rgba(0,230,118,0.3); }
+  .expiry-title    { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
+  .expiry-detail   { font-size: 12px; color: var(--muted); }
+
+    .unknown-wrap {
+    background: rgba(255,215,64,0.08);
+    border: 1px solid rgba(255,215,64,0.35);
+    border-radius: 14px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    display: none;
+  }
+  .unknown-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--yellow);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .unknown-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid rgba(255,215,64,0.5);
+    border-radius: 12px;
+    padding: 11px 14px;
+    color: var(--text);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 15px;
+    outline: none;
+  }
+  .unknown-hint { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+  .zoom-bar-wrap {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px 2px;
+  }
+  .zoom-bar-wrap.show { display: flex; }
+  .zoom-label-txt { font-size: 12px; color: var(--muted); white-space: nowrap; min-width: 36px; }
+  .zoom-slider {
+    flex: 1; -webkit-appearance: none;
+    height: 4px; border-radius: 4px;
+    background: var(--border); outline: none;
+  }
+  .zoom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 20px; height: 20px;
+    border-radius: 50%; background: var(--accent); cursor: pointer;
+  }
+  .zoom-btns { display: none; gap: 6px; padding: 0 16px 8px; }
+  .zoom-preset {
+    flex: 1; padding: 5px 0; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); font-size: 12px; font-weight: 700;
+    cursor: pointer; font-family: 'Sarabun', sans-serif; transition: all 0.15s;
+  }
+  .zoom-preset.active { background: rgba(0,212,255,0.15); border-color: var(--accent); color: var(--accent); }
+
+  .torch-btn {
+    position: absolute;
+    bottom: 14px;
+    right: 14px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.3);
+    background: rgba(0,0,0,0.5);
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    backdrop-filter: blur(4px);
+  }
+  .torch-btn.on {
+    background: rgba(255,215,64,0.85);
+    border-color: var(--yellow);
+    box-shadow: 0 0 16px rgba(255,215,64,0.6);
+  }
+
+  /* ── RESULT CARD ── */
+  .result-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+    display: none;
+    animation: slideUp 0.3s ease;
+  }
+  .result-card.show { display: block; }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .result-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  .result-meta {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .meta-pill {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .meta-pill span { color: var(--text); font-weight: 600; }
+
+  /* qty input */
+  .qty-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .qty-label { font-size: 14px; color: var(--muted); flex: 1; }
+  .qty-control {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .qty-btn {
+    width: 44px; height: 44px;
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 22px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 300;
+    transition: background 0.15s;
+  }
+  .qty-btn:active { background: var(--border); }
+  .qty-input {
+    width: 64px;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    text-align: center;
+    outline: none;
+  }
+  /* hide number spinners */
+  .qty-input::-webkit-outer-spin-button,
+  .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .diff-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .diff-ok   { background: rgba(0,230,118,0.12); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+  .diff-warn { background: rgba(255,215,64,0.12); color: var(--yellow); border: 1px solid rgba(255,215,64,0.3); }
+  .diff-err  { background: rgba(255,82,82,0.12);  color: var(--red);    border: 1px solid rgba(255,82,82,0.3); }
+
+  /* ── BTNS ── */
+  .btn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Sarabun', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 8px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: var(--bg);
+  }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .btn-ghost:active { background: var(--surface2); }
+
+  /* ── START CAMERA BTN ── */
+  .cam-start {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 20px;
+    gap: 14px;
+    cursor: pointer;
+  }
+  .cam-icon {
+    width: 72px; height: 72px;
+    background: var(--surface2);
+    border: 2px dashed var(--border);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+  }
+  .cam-text { font-size: 15px; color: var(--muted); font-weight: 600; }
+  .cam-sub  { font-size: 12px; color: #3d5a7a; text-align: center; }
+
+  /* ── IMPORT PAGE ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    margin-top: 20px;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  .upload-zone {
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    margin-bottom: 16px;
+  }
+  .upload-zone:hover { border-color: var(--accent); }
+  .upload-icon { font-size: 36px; margin-bottom: 10px; }
+  .upload-text { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .upload-sub  { font-size: 12px; color: var(--muted); }
+  #file-input { display: none; }
+
+  .manual-area {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px 8px;
+    margin-bottom: 12px;
+  }
+  .manual-area textarea {
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    resize: none;
+    min-height: 100px;
+    padding: 8px 4px;
+  }
+  .manual-area textarea::placeholder { color: var(--muted); }
+
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .table-wrap table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .table-wrap th {
+    background: var(--surface2);
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-wrap td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(30,58,95,0.4);
+    vertical-align: middle;
+  }
+  .table-wrap tr:last-child td { border-bottom: none; }
+  .code-cell { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); }
+  .counted-cell { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+  .diff-cell { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; }
+  .d-ok   { color: var(--green); }
+  .d-warn { color: var(--yellow); }
+  .d-err  { color: var(--red); }
+  .d-none { color: var(--muted); }
+
+  /* ── SUMMARY PAGE ── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 14px;
+  }
+  .stat-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-label { font-size: 12px; color: var(--muted); }
+
+  .export-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    font-family: 'Sarabun', sans-serif;
+    transition: border-color 0.2s;
+  }
+  .export-btn:hover { border-color: var(--accent); }
+  .export-icon { font-size: 22px; }
+  .export-text { text-align: left; }
+  .export-name { font-size: 14px; font-weight: 700; color: var(--text); }
+  .export-desc { font-size: 11px; color: var(--muted); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 999;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.ok   { color: var(--green); border-color: rgba(0,230,118,0.3); }
+  .toast.warn { color: var(--yellow); border-color: rgba(255,215,64,0.3); }
+  .toast.err  { color: var(--red); border-color: rgba(255,82,82,0.3); }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty-state .em-icon { font-size: 40px; margin-bottom: 10px; }
+  .empty-state .em-text { font-size: 14px; }
+
+  /* ── SETUP SCREEN ── */
+  .setup-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    gap: 0;
+  }
+  .setup-logo { font-size: 52px; margin-bottom: 12px; }
+  .setup-title { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .setup-sub { font-size: 14px; color: var(--muted); margin-bottom: 32px; text-align: center; }
+
+  .setup-field { width: 100%; margin-bottom: 14px; }
+  .setup-label { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .setup-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+    color: var(--text);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .setup-input:focus { border-color: var(--accent); }
+
+  .zone-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .zone-chip {
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Sarabun', sans-serif;
+  }
+  .zone-chip.selected {
+    background: rgba(0,212,255,0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* ── ZONE BANNER (topbar addition) ── */
+  .zone-banner {
+    background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(0,153,204,0.1));
+    border-bottom: 1px solid rgba(0,212,255,0.2);
+    padding: 8px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .zone-banner-label { font-size: 11px; color: var(--muted); }
+  .zone-banner-value { font-size: 13px; font-weight: 700; color: var(--accent); }
+
+  /* ── MERGE PAGE ── */
+  .merge-drop {
+    background: var(--surface);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+  .merge-drop:hover { border-color: var(--accent); }
+  .merge-drop input { display: none; }
+
+  .merge-file-list { margin-bottom: 16px; }
+  .merge-file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .merge-file-name { color: var(--text); font-weight: 600; }
+  .merge-file-meta { color: var(--muted); font-size: 11px; }
+  .merge-file-del { color: var(--red); cursor: pointer; font-size: 16px; }
+
+  .progress-bar-wrap {
+    background: var(--surface);
+    border-radius: 20px;
+    height: 6px;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    border-radius: 20px;
+    transition: width 0.3s;
+  }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div class="setup-screen" id="setup-screen">
+  <div class="setup-logo">📦</div>
+  <div class="setup-title">นับสต๊อก</div>
+  <div class="setup-sub">กรอกข้อมูลก่อนเริ่มนับ<br>แต่ละคนเลือกโซนของตัวเอง</div>
+
+  <div class="setup-field" style="width:100%">
+    <div class="setup-label">ชื่อผู้นับ</div>
+    <input class="setup-input" id="setup-name" type="text" placeholder="เช่น มิน, ต้น, ปลา..." maxlength="30">
+  </div>
+
+  <div class="setup-field" style="width:100%">
+    <div class="setup-label">เลือกโซนที่รับผิดชอบ</div>
+    <div class="zone-chips" id="zone-chips">
+      <div class="zone-chip" onclick="selectZone(this,'โซน A')">โซน A</div>
+      <div class="zone-chip" onclick="selectZone(this,'โซน B')">โซน B</div>
+      <div class="zone-chip" onclick="selectZone(this,'โซน C')">โซน C</div>
+      <div class="zone-chip" onclick="selectZone(this,'โซน D')">โซน D</div>
+      <div class="zone-chip" onclick="selectZone(this,'คลังหลัก')">คลังหลัก</div>
+      <div class="zone-chip" onclick="selectZone(this,'หน้าร้าน')">หน้าร้าน</div>
+    </div>
+    <input class="setup-input" id="setup-zone-custom" type="text" placeholder="หรือพิมพ์ชื่อโซนเอง..." maxlength="30" style="margin-top:8px">
+  </div>
+
+  <button class="btn btn-primary" style="margin-top:8px;width:100%" onclick="startApp()">เริ่มนับสต๊อก →</button>
+</div>
+
+<!-- TOP BAR -->
+<div class="topbar" id="main-app" style="display:none">
+  <div>
+    <div class="topbar-title">📦 นับสต๊อก</div>
+    <div class="topbar-sub" id="topbar-sub-text">Handheld Scanner</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span id="firebase-status" style="font-size:11px;color:var(--muted)">⏳ กำลังเชื่อม...</span>
+    <div class="badge" id="count-badge">0 / 437</div>
+  </div>
+</div>
+<div class="zone-banner" id="zone-banner" style="display:none">
+  <div>
+    <div class="zone-banner-label">ผู้นับ</div>
+    <div class="zone-banner-value" id="banner-name">—</div>
+  </div>
+  <div style="text-align:right">
+    <div class="zone-banner-label">โซน</div>
+    <div class="zone-banner-value" id="banner-zone">—</div>
+  </div>
+</div>
+<div id="tabs-and-pages" style="display:none">
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('scan')">🎯 ยิง QR</div>
+  <div class="tab" onclick="switchTab('import')">📂 นำเข้า</div>
+  <div class="tab" onclick="switchTab('list')">📋 รายการ</div>
+  <div class="tab" onclick="switchTab('summary')">📊 สรุป</div>
+  <div class="tab" onclick="switchTab('expiry')">⚠️ หมดอายุ</div>
+  <div class="tab" onclick="switchTab('merge')">🔗 รวม</div>
+</div>
+
+<!-- ═══ SCAN PAGE ═══ -->
+<div class="page active" id="page-scan">
+
+  <!-- ปุ่มย้อนกลับ (โชว์ตอนกล้องเปิด) -->
+  <div id="cam-back-bar" style="display:none;padding:8px 16px 0">
+    <button onclick="cancelScan()" style="display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 14px;color:var(--muted);font-family:'Sarabun',sans-serif;font-size:14px;cursor:pointer;">
+      ← ย้อนกลับ / ปิดกล้อง
+    </button>
+  </div>
+
+  <div class="scanner-wrapper" id="scanner-wrapper">
+    <div class="cam-start" id="cam-start" onclick="startCamera()">
+      <div class="cam-icon">📷</div>
+      <div class="cam-text">กดเพื่อเปิดกล้อง</div>
+      <div class="cam-sub">รองรับ QR Code และ Barcode<br>ทุกรูปแบบ</div>
+    </div>
+    <div id="reader" style="display:none;width:100%"></div>
+    <canvas id="reader-canvas" style="display:none"></canvas>
+    <div class="scan-overlay" id="scan-overlay" style="display:none">
+      <div class="scan-frame">
+        <span></span>
+        <div class="scan-line"></div>
+      </div>
+    </div>
+    <button class="torch-btn" id="torch-btn" style="display:none" onclick="toggleTorch()">🔦</button>
+  </div>
+  <div class="zoom-bar-wrap" id="zoom-wrap">
+    <span class="zoom-label-txt" id="zoom-val">1×</span>
+    <input class="zoom-slider" id="zoom-slider" type="range" min="1" max="5" step="0.1" value="1" oninput="applyZoom(this.value)">
+  </div>
+  <div class="zoom-btns" id="zoom-btns" style="display:flex;gap:6px;padding:0 16px 8px;display:none">
+    <button class="zoom-preset active" onclick="setZoom(1,this)">1×</button>
+    <button class="zoom-preset" onclick="setZoom(2,this)">2×</button>
+    <button class="zoom-preset" onclick="setZoom(3,this)">3×</button>
+  </div>
+  <div class="scan-hint" id="scan-hint" style="display:none">🔍 จ่อ QR / Barcode ให้อยู่ในกรอบ</div>
+
+  <!-- Result -->
+  <div class="result-card" id="result-card">
+    <div class="result-code" id="r-code">—</div>
+    <div class="result-name" id="r-name">—</div>
+
+    <!-- แจ้งเตือนวันหมดอายุ -->
+    <div class="expiry-banner" id="r-expiry-banner">
+      <div class="expiry-title" id="r-expiry-title">—</div>
+      <div class="expiry-detail" id="r-expiry-detail">—</div>
+    </div>
+
+    <!-- แจ้งเตือนเมื่อสินค้านี้ถูกนับไปแล้ว -->
+    <div id="r-already-counted" style="display:none;background:rgba(255,215,64,0.1);border:1px solid rgba(255,215,64,0.4);border-radius:12px;padding:10px 14px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:4px">⚠️ รายการนี้นับไปแล้ว!</div>
+      <div id="r-already-detail" style="font-size:12px;color:var(--muted)">—</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">กด "บันทึก" เพื่อทับยอดเดิม หรือ "ยกเลิก" เพื่อออก</div>
+    </div>
+
+    <!-- ช่องกรอกชื่อเมื่อไม่พบในระบบ -->
+    <div class="unknown-wrap" id="r-unknown-wrap">
+      <div class="unknown-label">⚠️ ไม่พบในระบบ — กรอกชื่อสินค้า</div>
+      <input class="unknown-input" id="r-custom-name" type="text" placeholder="ชื่อสินค้า (เพื่อนับทีหลัง)...">
+      <div class="unknown-hint">📝 จะบันทึกเป็น "รายการนอกระบบ" เพื่อปรับยอดทีหลัง</div>
+    </div>
+
+    <div class="result-meta" id="r-meta">
+      <div class="meta-pill">UOM: <span id="r-cat">—</span></div>
+      <div class="meta-pill">ระบบ: <span id="r-sys">—</span></div>
+    </div>
+
+    <div class="qty-row">
+      <div class="qty-label">ยอดนับ</div>
+      <div class="qty-control">
+        <button class="qty-btn" onclick="adjustQty(-1)">−</button>
+        <input class="qty-input" type="number" id="qty-input" value="1" min="0" oninput="updateDiff()">
+        <button class="qty-btn" onclick="adjustQty(1)">+</button>
+      </div>
+    </div>
+
+    <div id="diff-display" style="margin-bottom:14px"></div>
+
+    <button class="btn btn-primary" onclick="saveCount()">✅ บันทึกยอดนับ</button>
+    <button class="btn btn-ghost" onclick="cancelScan()">← ยกเลิก / ย้อนกลับ</button>
+  </div>
+
+  <!-- ค้นหาชื่อสินค้า -->
+  <div style="margin-top:16px" id="manual-fallback">
+
+    <!-- Search box -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">🔎 ค้นหาชื่อสินค้า</div>
+      <input id="product-search" type="text" placeholder="พิมพ์ชื่อหรือรหัสสินค้า..."
+        style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:14px;outline:none;"
+        oninput="searchProducts(this.value)">
+      <div id="product-search-results" style="margin-top:6px;max-height:220px;overflow-y:auto;border-radius:12px;"></div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+      <span style="font-size:11px;color:var(--muted)">หรือกรอกรหัส / barcode เอง</span>
+      <div style="flex:1;height:1px;background:var(--border)"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <input id="manual-code" type="text" placeholder="กรอกรหัสสินค้า / Barcode..."
+        style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:14px;outline:none;"
+        onkeydown="if(event.key==='Enter')lookupManual()">
+      <button onclick="lookupManual()"
+        style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;color:var(--accent);cursor:pointer;font-size:16px;">🔍</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ IMPORT PAGE ═══ -->
+<div class="page" id="page-import">
+  <div style="background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+    <div style="font-size:24px">✅</div>
+    <div>
+      <div style="font-size:14px;font-weight:700;color:var(--green)">โหลดข้อมูลสินค้าแล้ว</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:2px">439 SKU · 737 barcodes · ร้านชิดลม</div>
+    </div>
+  </div>
+  <div class="section-label">อัปโหลดข้อมูลใหม่ (ถ้าต้องการ)</div>
+
+  <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+    <div class="upload-icon">📊</div>
+    <div class="upload-text">อัปโหลดไฟล์ Excel / CSV</div>
+    <div class="upload-sub">รองรับ .xlsx, .xls, .csv<br>คอลัมน์: รหัสสินค้า, ชื่อ, หมวด, ยอดระบบ</div>
+  </div>
+  <input type="file" id="file-input" accept=".csv,.xlsx,.xls" onchange="handleFile(this)">
+
+  <div class="section-label">หรือวางข้อมูล CSV ตรงนี้</div>
+  <div class="manual-area">
+    <textarea id="csv-input" placeholder="รหัสสินค้า,ชื่อสินค้า,หมวดหมู่,ยอดระบบ
+A001,น้ำดื่มขวดใหญ่,เครื่องดื่ม,50
+A002,ขนมปัง,เบเกอรี่,30
+B001,นมกล่อง,เครื่องดื่ม,120"></textarea>
+  </div>
+
+  <button class="btn btn-primary" onclick="importCSV()">📥 นำเข้าข้อมูล</button>
+
+  <div id="import-status" style="margin-top:12px;font-size:13px;color:var(--muted);text-align:center"></div>
+
+  <div id="preview-wrap" style="display:none;margin-top:16px">
+    <div class="section-label">ตัวอย่างข้อมูล (5 แถวแรก)</div>
+    <div class="table-wrap" id="preview-table"></div>
+  </div>
+</div>
+
+<!-- ═══ LIST PAGE ═══ -->
+<div class="page" id="page-list">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div class="section-label" style="margin:0">รายการนับ</div>
+    <button onclick="clearAll()" style="background:none;border:none;color:var(--red);font-size:12px;cursor:pointer;font-family:'Sarabun',sans-serif">ล้างทั้งหมด</button>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <input id="search-input" type="text" placeholder="🔍 ค้นหา..."
+      style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-size:14px;outline:none;"
+      oninput="renderList()">
+    <select id="filter-status" onchange="renderList()"
+      style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;color:var(--muted);font-size:13px;outline:none;">
+      <option value="all">ทั้งหมด</option>
+      <option value="ok">✅ ตรง</option>
+      <option value="diff">❌ ต่าง</option>
+      <option value="uncounted">⏳ ยังไม่นับ</option>
+    </select>
+  </div>
+
+  <div id="list-container">
+    <div class="empty-state">
+      <div class="em-icon">📦</div>
+      <div class="em-text">ยังไม่มีรายการ<br>ไปที่แท็บ "นำเข้า" เพื่อโหลดข้อมูลสินค้า</div>
+    </div>
+  </div>
+
+  <div id="unknown-section" style="display:none;margin-top:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="section-label" style="margin:0;color:var(--yellow)">⚠️ รายการนอกระบบ</div>
+      <button onclick="clearUnknown()" style="background:none;border:none;color:var(--red);font-size:12px;cursor:pointer;font-family:'Sarabun',sans-serif">ล้าง</button>
+    </div>
+    <div class="table-wrap" id="unknown-table"></div>
+  </div>
+</div>
+
+<!-- ═══ SUMMARY PAGE ═══ -->
+<div class="page" id="page-summary">
+  <div class="section-label">ภาพรวมการนับ</div>
+
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num" id="s-total" style="color:var(--accent)">0</div>
+      <div class="stat-label">รายการทั้งหมด</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="s-counted" style="color:var(--text)">0</div>
+      <div class="stat-label">นับแล้ว</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="s-ok" style="color:var(--green)">0</div>
+      <div class="stat-label">✅ ยอดตรง</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="s-diff" style="color:var(--red)">0</div>
+      <div class="stat-label">❌ ยอดต่าง</div>
+    </div>
+  </div>
+
+  <div class="section-label">ซิงค์ข้อมูล</div>
+
+  <button class="export-btn" onclick="syncAllToFirebase()" id="sync-all-btn">
+    <div class="export-icon">☁️</div>
+    <div class="export-text">
+      <div class="export-name">ซิงค์ทั้งหมดขึ้น Firebase</div>
+      <div class="export-desc">อัปโหลดยอดนับทั้งหมดที่มีอยู่ขึ้น cloud</div>
+    </div>
+  </button>
+
+  <div class="section-label">ส่งออกผลการนับ</div>
+
+  <button class="export-btn" onclick="exportCSV()">
+    <div class="export-icon">📄</div>
+    <div class="export-text">
+      <div class="export-name">ดาวน์โหลด CSV</div>
+      <div class="export-desc">เปิดใน Excel / Google Sheets ได้เลย</div>
+    </div>
+  </button>
+
+  <button class="export-btn" onclick="exportSummaryText()">
+    <div class="export-icon">📋</div>
+    <div class="export-text">
+      <div class="export-name">คัดลอกสรุป (Text)</div>
+      <div class="export-desc">สำหรับแปะใน LINE / แชท</div>
+    </div>
+  </button>
+
+  <div class="section-label" style="margin-top:20px">รายการที่ยอดต่าง</div>
+  <div class="table-wrap" id="diff-table">
+    <div class="empty-state">
+      <div class="em-icon">🎉</div>
+      <div class="em-text">ยังไม่มีรายการ</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ EXPIRY PAGE ═══ -->
+<div class="page" id="page-expiry">
+
+  <!-- settings bar -->
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+    <div style="font-size:13px;color:var(--muted);white-space:nowrap">แจ้งเตือนเมื่อเหลือน้อยกว่า</div>
+    <input id="expiry-days" type="number" value="365" min="1" max="999"
+      style="width:72px;background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:7px 10px;color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;outline:none;text-align:center"
+      oninput="renderExpiry()">
+    <div style="font-size:13px;color:var(--muted)">วัน</div>
+    <select id="expiry-sort" onchange="renderExpiry()"
+      style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:7px 10px;color:var(--muted);font-size:13px;outline:none;margin-left:auto">
+      <option value="date">เรียงตามวันหมดอายุ</option>
+      <option value="name">เรียงตามชื่อ</option>
+    </select>
+  </div>
+
+  <!-- stat pills -->
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="expiry-stats"></div>
+
+  <!-- list -->
+  <div id="expiry-list"></div>
+</div>
+
+<!-- ═══ MERGE PAGE ═══ -->
+<div class="page" id="page-merge">
+  <div class="section-label">รวมไฟล์จากทุกคน</div>
+
+  <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px;font-size:13px;color:var(--muted);line-height:1.8">
+    <b style="color:var(--text)">วิธีใช้งาน:</b><br>
+    1. แต่ละคน export CSV จากแท็บ <b style="color:var(--accent)">📊 สรุป</b><br>
+    2. ส่งไฟล์ CSV มาที่คนรวมยอด (ทาง LINE/AirDrop)<br>
+    3. คนรวมอัปโหลดทุกไฟล์ที่นี่ → ระบบรวมให้อัตโนมัติ
+  </div>
+
+  <label class="merge-drop" id="merge-drop-zone">
+    <input type="file" id="merge-file-input" accept=".csv" multiple onchange="handleMergeFiles(this)">
+    <div style="font-size:32px;margin-bottom:8px">📁</div>
+    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">อัปโหลดไฟล์ CSV ทุกคน</div>
+    <div style="font-size:12px;color:var(--muted)">เลือกได้หลายไฟล์พร้อมกัน</div>
+  </label>
+
+  <div class="merge-file-list" id="merge-file-list"></div>
+
+  <div id="merge-progress-wrap" style="display:none;margin-bottom:12px">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px" id="merge-progress-label">กำลังรวม...</div>
+    <div class="progress-bar-wrap">
+      <div class="progress-bar" id="merge-progress-bar" style="width:0%"></div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary" id="merge-btn" onclick="doMerge()" style="display:none">🔗 รวมไฟล์ทั้งหมด</button>
+
+  <div id="merge-result" style="display:none;margin-top:16px">
+    <div class="section-label">ผลการรวม</div>
+    <div class="stat-grid" id="merge-stats"></div>
+    <button class="btn btn-primary" onclick="exportMergedCSV()" style="margin-top:4px">📄 ดาวน์โหลดผลรวม CSV</button>
+    <button class="btn btn-ghost" onclick="exportMergedText()" style="margin-top:0">📋 คัดลอกสรุปส่ง LINE</button>
+
+    <div class="section-label" style="margin-top:20px">รายการที่ยอดต่าง</div>
+    <div class="table-wrap" id="merge-diff-table"></div>
+  </div>
+</div>
+
+</div><!-- end tabs-and-pages -->
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+// ─────────────────────────────────────────
+// EMBEDDED PRODUCT DATA (จากไฟล์ Excel)
+// ─────────────────────────────────────────
+const EMBEDDED_SKU_MAP = {"140116641013": {"name": "AERIUS 5 MG.10 TAB.", "uom": "BOX", "sku": "140116641013", "barcodes": ["840164515527"], "systemQty": 2}, "140701171414": {"name": "BENZAC 2.5% 15 GM.", "uom": "TU", "sku": "140701171414", "barcodes": ["3499320007269"], "systemQty": 2}, "6418102": {"name": "โพลิเด้นท์ เม็ดฟู่ทำความสะอาดฟันปลอม 30 เม็ด", "uom": "BOX", "sku": "6418102", "barcodes": ["8851007100727", "6418102"], "systemQty": 1}, "140105171612": {"name": "BUSCOPAN 10 MG 10X10 TAB", "uom": "EA", "sku": "140105171612", "barcodes": ["8850886103294", "8850886103010"], "systemQty": 7}, "140408681013": {"name": "VENTOLIN EVOHALER  200 DOSE", "uom": "BT", "sku": "140408681013", "barcodes": ["8851007153105"], "systemQty": 1}, "140816641021": {"name": "AERIUS ORAL SOL 0.5MG/ML 60ML", "uom": "BT", "sku": "140816641021", "barcodes": ["840164516142"], "systemQty": 3}, "140703091013": {"name": "TOPICORT         5 G", "uom": "TU", "sku": "140703091013", "barcodes": ["8033661806676", "8850886073207"], "systemQty": 2}, "140704261001": {"name": "ZAMBUK         18 G", "uom": "PAC", "sku": "140704261001", "barcodes": ["8850172242140"], "systemQty": 2}, "140706081001": {"name": "VICKS VAPORUB    10 G", "uom": "PAC", "sku": "140706081001", "barcodes": ["4987176600776"], "systemQty": 8}, "140706371103": {"name": "COUNTERPAIN COOL 60 G", "uom": "TU", "sku": "140706371103", "barcodes": ["8995201800264"], "systemQty": 6}, "6405126": {"name": "น้ำยาล้างเลนส์  RENU 355 ML", "uom": "BT", "sku": "6405126", "barcodes": ["8859086600251"], "systemQty": 1}, "140115212011": {"name": "SAMBEE   100X10 TAB", "uom": "EA", "sku": "140115212011", "barcodes": ["11000221", "8855451000510"], "systemQty": 76}, "140714421011": {"name": "ELOMET CREAM   15 G", "uom": "TU", "sku": "140714421011", "barcodes": ["840164515572", "8850285116024"], "systemQty": 3}, "140110391204": {"name": "CAL-D-REDOXON    15 TAB", "uom": "TU", "sku": "140110391204", "barcodes": ["8850172251111"], "systemQty": 5}, "141005511312": {"name": "NIZORAL SHAMPOO  50 ML", "uom": "BT", "sku": "141005511312", "barcodes": ["5036631011103"], "systemQty": 1}, "140107250011": {"name": "GASZYM   10X10 TAB", "uom": "EA", "sku": "140107250011", "barcodes": ["8901296058534", "8858690852216"], "systemQty": 19}, "6203039": {"name": "ชุดตรวจโควิด-19 แบบ 2 IN 1 กล่องเดี่ยว", "uom": "BOX", "sku": "6203039", "barcodes": ["8859829992995"], "systemQty": 23}, "140410471021": {"name": "OTRIVINE NASAL MD SPRAY 0.05% 10 ML (เด็ก)", "uom": "BT", "sku": "140410471021", "barcodes": ["8852364007100"], "systemQty": 4}, "6403093": {"name": "ชุดตรวจ5IN1 WILBUR COVID+RSV+FLU A,B+ADV", "uom": "SET", "sku": "6403093", "barcodes": ["8859829900907", "6403093"], "systemQty": 6}, "141018691003": {"name": "GAVISCON CORE SACHET 12X10 ML.", "uom": "EA", "sku": "141018691003", "barcodes": ["50230112", "8850360032249"], "systemQty": 14}, "120213871001": {"name": "FLAVA SOY 60 CAP (ถั่วเหลือง)", "uom": "BT", "sku": "120213871001", "barcodes": ["8853433000220"], "systemQty": 2}, "140117460201": {"name": "YAZ            1X28 TAB", "uom": "BOX", "sku": "140117460201", "barcodes": ["8854849000545"], "systemQty": 14}, "140107294026": {"name": "PANADOL ACTIFAST   1X10 TAB", "uom": "BOX", "sku": "140107294026", "barcodes": ["8851007200151"], "systemQty": 11}, "140403140011": {"name": "สเปรย์แก้ไอตราตะขาบ 5 ตัว 20 ML", "uom": "BT", "sku": "140403140011", "barcodes": ["8852761002074"], "systemQty": 12}, "110202600121": {"name": "GPO-CLINDAMYCIN CAP300MG10X10S\nGPO-CLINDAMYCIN CAP300MG10X10'S", "uom": "CAP", "sku": "110202600121", "barcodes": ["8850678302713", "8850678302720", "8850678024219", "8850678305943"], "systemQty": 120}, "110702730112": {"name": "GPO-COAL TAR-COAL TAR CREAM5%W/W15G", "uom": "TU", "sku": "110702730112", "barcodes": ["8850678304441", "110702730112"], "systemQty": 4}, "140413111011": {"name": "ZITHROMAX  200 MG  15  ML.", "uom": "BT", "sku": "140413111011", "barcodes": ["8852655205017"], "systemQty": 3}, "140213420011": {"name": "ZIRIN 10 MG 1X10 CAP", "uom": "BOX", "sku": "140213420011", "barcodes": ["8850769021073"], "systemQty": 3}, "140114821021": {"name": "MEPTIN 25 MCG   10X10 TAB", "uom": "EA", "sku": "140114821021", "barcodes": ["11000209", "8852629346104"], "systemQty": 7}, "140214270011": {"name": "LOREZE 10 MG 1X10 CAP", "uom": "BOX", "sku": "140214270011", "barcodes": ["8850769020892"], "systemQty": 6}, "140115221101": {"name": "NAT B   40 TAB", "uom": "BT", "sku": "140115221101", "barcodes": ["8850769008913"], "systemQty": 1}, "140408031012": {"name": "BETADINE THROAT SPRAY 12 ML.", "uom": "BT", "sku": "140408031012", "barcodes": ["9314057022832"], "systemQty": 11}, "140714441111": {"name": "MUPORIN  OINTMENT    5 G", "uom": "TU", "sku": "140714441111", "barcodes": ["8851881701621"], "systemQty": 3}, "140705101112": {"name": "HYTISONE   5 G", "uom": "TU", "sku": "140705101112", "barcodes": ["8853871004873"], "systemQty": 4}, "140710020021": {"name": "ACNETIN-A  0.05%  10 GM.", "uom": "TU", "sku": "140710020021", "barcodes": ["8853348010772"], "systemQty": 1}, "140800663611": {"name": "COAMOX 250 MG  SYR 60 ML", "uom": "BT", "sku": "140800663611", "barcodes": ["8853144343111"], "systemQty": 2}, "140815641212": {"name": "FLUIFORT  SYR    120  ML", "uom": "BT", "sku": "140815641212", "barcodes": ["8714651100010"], "systemQty": 4}, "140717470102": {"name": "BEPANTHEN SENSIDERM 20 GM.", "uom": "TU", "sku": "140717470102", "barcodes": ["8850172243055"], "systemQty": 4}, "140117460111": {"name": "SYNFONIA 24+4 TAB", "uom": "BOX", "sku": "140117460111", "barcodes": ["8858741500264", "140117460111"], "systemQty": 9}, "140805601111": {"name": "DUPHALAC SYR   100  ML", "uom": "BT", "sku": "140805601111", "barcodes": ["8002660043375"], "systemQty": 2}, "140122980011": {"name": "NAT D 1000IU 60 TAB", "uom": "BT", "sku": "140122980011", "barcodes": ["8850769023565", "140122980011"], "systemQty": 2}, "140103561203": {"name": "KREMIL-S     20X10 TAB", "uom": "EA", "sku": "140103561203", "barcodes": ["8851824662095", "8851824000217"], "systemQty": 27}, "140100461212": {"name": "MUCOSOLVAN 30 MG 10X10 TAB", "uom": "EA", "sku": "140100461212", "barcodes": ["8850886103287", "140100461212", "46121212"], "systemQty": 6}, "140115481121": {"name": "CALTRATE PLUS    60 TAB", "uom": "BT", "sku": "140115481121", "barcodes": ["8851005163144"], "systemQty": 2}, "110405400213": {"name": "ETHYL ALCOHOL 70%V/V (GPO ALCOHOL)240 ML", "uom": "BT", "sku": "110405400213", "barcodes": ["8850678130149", "8850678307022"], "systemQty": 9}, "120111530301": {"name": "ยาอมมะแว้ง (รสบ๊วย) 20X20 เม็ด", "uom": "PAC", "sku": "120111530301", "barcodes": ["8853433000329", "8853433000343"], "systemQty": 6}, "110125990101": {"name": "C CERA PLUS ONION EXTRACT TAB (GPO PLUS)", "uom": "BOX", "sku": "110125990101", "barcodes": ["8859498722374", "110125990101"], "systemQty": 2}, "6418113": {"name": "POLIDENT PRO RETAINER 30'S", "uom": "BOX", "sku": "6418113", "barcodes": ["8851007130786"], "systemQty": 2}, "141006690101": {"name": "NAPHCON-A  EYE DROPS   15  ML", "uom": "BT", "sku": "141006690101", "barcodes": ["300650287067", "5413895024146"], "systemQty": 5}, "140205711215": {"name": "IMODIUM  2 MG    20X6 CAP", "uom": "EA", "sku": "140205711215", "barcodes": ["8850583001831", "8850583001824"], "systemQty": 17}, "140103601011": {"name": "DAFLON 500 MG   2X15 TAB", "uom": "EA", "sku": "140103601011", "barcodes": ["11000067", "3594456400202"], "systemQty": 2}, "140102711121": {"name": "CANESTEN VT 500 MG 1X1 TAB", "uom": "BOX", "sku": "140102711121", "barcodes": ["8850172231106"], "systemQty": 2}, "141011251013": {"name": "TEARS NATURALE FREE 8X4X0.9  ML", "uom": "EA", "sku": "141011251013", "barcodes": ["11000298", "300650416344"], "systemQty": 32}, "140115881011": {"name": "MADIPLOT 10 MG   10X10 TAB", "uom": "EA", "sku": "140115881011", "barcodes": ["11000227", "8851963114165"], "systemQty": 8}, "140222190011": {"name": "PUDINHARA 1X10 CAP.", "uom": "EA", "sku": "140222190011", "barcodes": ["8901207029745", "8901207006975"], "systemQty": 3}, "111408900201": {"name": "ยาธาตุน้ำแดง180มล(STOMACHIC MIXTURE)", "uom": "BT", "sku": "111408900201", "barcodes": ["8850678063010", "8850678306414"], "systemQty": 19}, "141017800102": {"name": "เขากุยแก้ตัวร้อน (สีขาว) 240 มล. อ้วยอัน", "uom": "BT", "sku": "141017800102", "barcodes": ["8852913200914"], "systemQty": 3}, "140420220012": {"name": "NASOL SPRAY 15 ML", "uom": "BT", "sku": "140420220012", "barcodes": ["8851847100062", "140420220012"], "systemQty": 4}, "110214520111": {"name": "OMEPRAZOLE GPO-OMEPRAZOLE CAP20MG10X10'S", "uom": "CAP", "sku": "110214520111", "barcodes": ["8850678303161", "8850678303178", "8850678024516", "8850678306179"], "systemQty": 540}, "141010990011": {"name": "HASHI BABY DROP สูตรอ่อนโยน", "uom": "BT", "sku": "141010990011", "barcodes": ["8855107001328"], "systemQty": 4}, "140117131011": {"name": "ARCOXIA 90 MG   1X5 TAB", "uom": "BOX", "sku": "140117131011", "barcodes": ["840164526349"], "systemQty": 8}, "140405471213": {"name": "MUCILIN SF  10X5 G", "uom": "BOX", "sku": "140405471213", "barcodes": ["8852616200310"], "systemQty": 2}, "140119410102": {"name": "BEROCCA (ORANGE) 1X15 TAB", "uom": "TU", "sku": "140119410102", "barcodes": ["8850172253009"], "systemQty": 8}, "140710020011": {"name": "ACNETIN-A  0.025%  10 GM.", "uom": "TU", "sku": "140710020011", "barcodes": ["8853348010789"], "systemQty": 3}, "140101423212": {"name": "BISOLVON TAB   10X10 TAB", "uom": "EA", "sku": "140101423212", "barcodes": ["1401014232", "140101423212"], "systemQty": 16}, "110711753801": {"name": "CURMIN SOLISTRA SUNSCREEN SPF 50", "uom": "TU", "sku": "110711753801", "barcodes": ["8850678313412"], "systemQty": 26}, "110224640111": {"name": "ASTA PLUS CAP (GPO PLUS)", "uom": "BOX", "sku": "110224640111", "barcodes": ["8859498722350"], "systemQty": 4}, "140106461621": {"name": "METRONIDAZOLE 400 MG  50X10 TAB", "uom": "EA", "sku": "140106461621", "barcodes": ["11000120", "8855451002132"], "systemQty": 14}, "6404023": {"name": "ALSOFF COTTON BALL 8 ก้อน", "uom": "PAC", "sku": "6404023", "barcodes": ["8853042000253", "8853042000277", "6404023", "3204046"], "systemQty": 12}, "140110352402": {"name": "Z-BEC              60 TAB", "uom": "TAB", "sku": "140110352402", "barcodes": ["11000161", "8851005166046"], "systemQty": 120}, "110126000101": {"name": "B COM PLUS TAB (GPO PLUS)", "uom": "BOX", "sku": "110126000101", "barcodes": ["8859498722367", "110126000101"], "systemQty": 3}, "140101221012": {"name": "MERISLON 6 MG. 3X10 TAB", "uom": "EA", "sku": "140101221012", "barcodes": ["11000028", "8858682900178"], "systemQty": 4}, "140102941301": {"name": "DIANE -35      1X21 TAB", "uom": "BOX", "sku": "140102941301", "barcodes": ["8850172110081"], "systemQty": 9}, "140402710101": {"name": "MYCODERM  POWDER 75 G", "uom": "BT", "sku": "140402710101", "barcodes": ["8852535009001"], "systemQty": 2}, "140110390311": {"name": "VISTRA BIO C 1000 MG 30 TAB", "uom": "BT", "sku": "140110390311", "barcodes": ["8851515606339"], "systemQty": 1}, "141020760011": {"name": "SYSTANE ULTRA UD 0.5 MLX28 VIAL", "uom": "BOX", "sku": "141020760011", "barcodes": ["300651432633", "141020760011"], "systemQty": 3}, "140105551321": {"name": "EUTHYROX 100 MCG  4X25 TAB", "uom": "EA", "sku": "140105551321", "barcodes": ["11000107", "140105551321"], "systemQty": 4}, "140101221331": {"name": "SERC   24 MG  1X20 TAB", "uom": "BOX", "sku": "140101221331", "barcodes": ["3760008321206"], "systemQty": 2}, "140414421011": {"name": "NASONEX NASAL SPRAY 140 DOSE", "uom": "BT", "sku": "140414421011", "barcodes": ["840164515602", "8850285001214"], "systemQty": 3}, "110203280321": {"name": "GPO DICLOX-DICLOXACILLIN CAP500MG50X10'", "uom": "CAP", "sku": "110203280321", "barcodes": ["8850678302980", "8850678302997", "8850678023830", "8850678306094"], "systemQty": 130}, "110115480111": {"name": "CALCIUM PLUS (GPO PLUS)", "uom": "BOX", "sku": "110115480111", "barcodes": ["8859498701355", "110115480111"], "systemQty": 2}, "110110340102": {"name": "MULTIVITAMIN TAB1000S\nMULTIVITAMIN TAB1000'S", "uom": "TAB", "sku": "110110340102", "barcodes": ["8850678301655", "8850678235820", "8850678309460"], "systemQty": 2000}, "110121390111": {"name": "BIO ZINC PLUS (GPO PLUS)", "uom": "BOX", "sku": "110121390111", "barcodes": ["8859498701546", "110121390111"], "systemQty": 1}, "110125490111": {"name": "DLAX NIGHT (GPO PLUS)", "uom": "BOX", "sku": "110125490111", "barcodes": ["8859498705056", "110125490111"], "systemQty": 2}, "111490002291": {"name": "ยาชุดประจำบ้าน", "uom": "SET", "sku": "111490002291", "barcodes": ["8850678190914"], "systemQty": 5}, "140203862612": {"name": "POLICYCLINE 100 MG.50X10 CAP.", "uom": "EA", "sku": "140203862612", "barcodes": ["10000192", "8852645461232"], "systemQty": 8}, "6416016": {"name": "SOS PLUS CO-ADHESIVE BANDAGE 3", "uom": "BOX", "sku": "6416016", "barcodes": ["8859243304886"], "systemQty": 1}, "120214520012": {"name": "MIRACID 20 MG 1X14 CAP", "uom": "BOX", "sku": "120214520012", "barcodes": ["8852616200433"], "systemQty": 10}, "110200660421": {"name": "GPO MOX-AMOXICILLIN CAP500MG50X10'S", "uom": "CAP", "sku": "110200660421", "barcodes": ["8850678303031", "8850678303017", "8850678020150", "8850678306117"], "systemQty": 120}, "140407181411": {"name": "FEENOZE 0.05% 20 ML.", "uom": "BT", "sku": "140407181411", "barcodes": ["8858992501485"], "systemQty": 3}, "6405041": {"name": "K-Y JELLY    42 G", "uom": "TU", "sku": "6405041", "barcodes": ["5052197053739"], "systemQty": 2}, "6405115": {"name": "RENU MULTIPLUS 60 ML", "uom": "BT", "sku": "6405115", "barcodes": ["310119038710"], "systemQty": 13}, "141022410011": {"name": "SYSTANE ULTRA 10 ML.", "uom": "BT", "sku": "141022410011", "barcodes": ["300651431599"], "systemQty": 1}, "140205211121": {"name": "NUROFEN ZAVANCE 400 MG 1X10 CAP", "uom": "BOX", "sku": "140205211121", "barcodes": ["5000158106178"], "systemQty": 2}, "140701171413": {"name": "BENZAC AC GEL    5%  60 G", "uom": "TU", "sku": "140701171413", "barcodes": ["3499320000024"], "systemQty": 1}, "6426006": {"name": "KLEAN&KARE NIZZY SPRAY 18 ML", "uom": "BT", "sku": "6426006", "barcodes": ["8854060904059"], "systemQty": 2}, "110211750511": {"name": "CURCUMINOIDS CAPSULES 250 MG (ANTIOX)THP", "uom": "BT", "sku": "110211750511", "barcodes": ["8850678312224"], "systemQty": 5}, "120112230113": {"name": "MEM-O-G 10X10'S TAB (ใบแปะก๊วย)", "uom": "BOX", "sku": "120112230113", "barcodes": ["8853433000411"], "systemQty": 2}, "140111041013": {"name": "ANAPRIL  20 MG   10X10 TAB", "uom": "EA", "sku": "140111041013", "barcodes": ["11000174", "8852616100597"], "systemQty": 30}, "140106610011": {"name": "PHYSOCAL 1X15'S", "uom": "TU", "sku": "140106610011", "barcodes": ["8858793370044"], "systemQty": 2}, "140110360021": {"name": "CYNCOBAL 1X15'S", "uom": "TU", "sku": "140110360021", "barcodes": ["8858793370037"], "systemQty": 2}, "140110390021": {"name": "QUERCETIN PLUS 1X15'S", "uom": "TU", "sku": "140110390021", "barcodes": ["8858793370020"], "systemQty": 2}, "110110350502": {"name": "VITAMIN B1-B6-B12 TAB500'S", "uom": "TAB", "sku": "110110350502", "barcodes": ["8850678305387", "8850678239323", "8850678305813"], "systemQty": 1000}, "140218641011": {"name": "VISTRA GRAPE SEED   30 CAP", "uom": "BT", "sku": "140218641011", "barcodes": ["8858761900587"], "systemQty": 3}, "140114271411": {"name": "ALLER TAB   10X10TAB", "uom": "EA", "sku": "140114271411", "barcodes": ["11000199", "8851102002445"], "systemQty": 11}, "140214991422": {"name": "BLACKMORES FISH OIL MINI CAP.60 CAP.", "uom": "BT", "sku": "140214991422", "barcodes": ["93562645"], "systemQty": 2}, "140801871031": {"name": "FLEMEX KIDS SYR 60 ML", "uom": "BT", "sku": "140801871031", "barcodes": ["8852027349806"], "systemQty": 2}, "140106612607": {"name": "CENTRUM SILVER  FG   30 TAB", "uom": "BT", "sku": "140106612607", "barcodes": ["8851005100057"], "systemQty": 2}, "140816640211": {"name": "DESTA SYRUP 60 ML", "uom": "BT", "sku": "140816640211", "barcodes": ["8853466004103"], "systemQty": 3}, "141018691014": {"name": "GAVISCON DOUBLE ACTION MINT 12X10ML", "uom": "EA", "sku": "141018691014", "barcodes": ["8850360035622", "8850360035639"], "systemQty": 22}, "140407671001": {"name": "PERSKINDOL CLASSIC SPRAY 150 ML", "uom": "BT", "sku": "140407671001", "barcodes": ["7640167724185"], "systemQty": 3}, "140104041011": {"name": "AVAMIGRAN 100 MG 1X10 TAB.", "uom": "BOX", "sku": "140104041011", "barcodes": ["8858789600858"], "systemQty": 2}, "141017370101": {"name": "ยาสตรีเพ็ญภาค 300 มล.", "uom": "BT", "sku": "141017370101", "barcodes": ["8858736900017"], "systemQty": 3}, "140110350012": {"name": "B-CO-ED 100 TAB.", "uom": "BT", "sku": "140110350012", "barcodes": ["8855451002774"], "systemQty": 5}, "140415901011": {"name": "ELMETACIN  SPRAY 50 ML", "uom": "BT", "sku": "140415901011", "barcodes": ["8851743000411"], "systemQty": 6}, "140706371102": {"name": "COUNTERPAIN COOL 30 G", "uom": "TU", "sku": "140706371102", "barcodes": ["8995201800257"], "systemQty": 5}, "140405400611": {"name": "LATORRIA SPRAY 100 ML กลิ่นแป้งเด็ก", "uom": "BT", "sku": "140405400611", "barcodes": ["8859829900983"], "systemQty": 14}, "111406370101": {"name": "ขี้ผึ้งแก้ปวดบวม 15 กรัม", "uom": "BT", "sku": "111406370101", "barcodes": ["8850678060316", "8850678306308"], "systemQty": 6}, "110412021401": {"name": "GPO ALCOHOL GEL 50 G", "uom": "TU", "sku": "110412021401", "barcodes": ["8850678311791"], "systemQty": 14}, "140100272311": {"name": "ZENZERA 200 MG  50X2 TAB", "uom": "EA", "sku": "140100272311", "barcodes": ["8853348000766", "8853348003170"], "systemQty": 13}, "140121060012": {"name": "PROPOLIZ LOZENGE 8'S", "uom": "EA", "sku": "140121060012", "barcodes": ["8856513011215", "8856513011208"], "systemQty": 6}, "140220091011": {"name": "VISTRA COLLAGEN TYPE2 30 CAP.", "uom": "BT", "sku": "140220091011", "barcodes": ["8851515604908"], "systemQty": 3}, "140700192311": {"name": "CLINOVIR CREAM 5%  5 GM.", "uom": "TU", "sku": "140700192311", "barcodes": ["8853348002678"], "systemQty": 9}, "120106010011": {"name": "PONSTAN 500 MG 25X10S\nPONSTAN 500 MG 25X10'S", "uom": "EA", "sku": "120106010011", "barcodes": ["8850339110527", "8850339110626", "120106010011"], "systemQty": 26}, "140106920011": {"name": "NORFLOX RX 400 MG 25X10 TAB", "uom": "EA", "sku": "140106920011", "barcodes": ["8852673002346", "140106920011", "6920011"], "systemQty": 40}, "140703271711": {"name": "VOLTAREN EMULGEL  25 G.", "uom": "TU", "sku": "140703271711", "barcodes": ["8852364002266"], "systemQty": 3}, "140104371511": {"name": "U-SPA 100 MG   10X10 TAB", "uom": "EA", "sku": "140104371511", "barcodes": ["11000084", "8850239002861"], "systemQty": 4}, "140102711111": {"name": "CANESTEN VT 100 MG  1X6 TAB", "uom": "BOX", "sku": "140102711111", "barcodes": ["8850172231007"], "systemQty": 3}, "140717470101": {"name": "BEPANTHEN OINTMENT 30 G", "uom": "TU", "sku": "140717470101", "barcodes": ["8850172243017"], "systemQty": 5}, "140100701013": {"name": "STREPSILS HONEY LEMON  24X8 TAB", "uom": "PAC", "sku": "140100701013", "barcodes": ["8850360310040", "8850360310019"], "systemQty": 14}, "141018691012": {"name": "GAVISCON ADVANCE PEPPERMINT 24X10 ML", "uom": "PAC", "sku": "141018691012", "barcodes": ["88503608", "8850360032225", "8850360032225"], "systemQty": 38}, "6402245": {"name": "VIRIMED N95 RESPIRATOR 3S\nVIRIMED N95 RESPIRATOR 3'S", "uom": "PAC", "sku": "6402245", "barcodes": ["8857127714028"], "systemQty": 16}, "140407671002": {"name": "PERSKINDOL COOL SPRAY 250 ML.", "uom": "BT", "sku": "140407671002", "barcodes": ["7640167725496"], "systemQty": 2}, "140116460201": {"name": "ยาขมเม็ดน้ำเต้าทอง   25X4 เม็ด", "uom": "PAC", "sku": "140116460201", "barcodes": ["8850698019028", "8850698010025"], "systemQty": 10}, "140107293718": {"name": "SARA 500 MG   100 TAB", "uom": "BT", "sku": "140107293718", "barcodes": ["8851473004338"], "systemQty": 4}, "140320230101": {"name": "ยาแก้ไอ อาปาเช่      60 มล.", "uom": "BT", "sku": "140320230101", "barcodes": ["8857022000134"], "systemQty": 12}, "6405015": {"name": "COLD-HOT PACK (3M)", "uom": "BOX", "sku": "6405015", "barcodes": ["8850304015079"], "systemQty": 1}, "140116981011": {"name": "FISHERMAN'S (SPEARMINT)  24X25 G", "uom": "PAC", "sku": "140116981011", "barcodes": ["96083864", "5000357105439"], "systemQty": 12}, "120211930302": {"name": "ฟ้าทะลายโจร แคปซูล 350 มก. 10X10 แคปซูล", "uom": "EA", "sku": "120211930302", "barcodes": ["11000348", "8853433000398"], "systemQty": 20}, "110216650011": {"name": "GABAPENTIN GPO-GABAPENTIN CAP100MG10X10'", "uom": "CAP", "sku": "110216650011", "barcodes": ["8850678302898", "8850678302904", "8850678024615", "8850678306025"], "systemQty": 160}, "140110351605": {"name": "NEUROBION   25X10 TAB", "uom": "EA", "sku": "140110351605", "barcodes": ["11000160", "8852881026523"], "systemQty": 16}, "140705511512": {"name": "SPORAXYL CREAM   15 G", "uom": "TU", "sku": "140705511512", "barcodes": ["8853348009363"], "systemQty": 7}, "140114582511": {"name": "NUOSIC   50X10 TAB", "uom": "EA", "sku": "140114582511", "barcodes": ["11000205", "8855459000680"], "systemQty": 34}, "140111041021": {"name": "ANAPRIL 5 MG   10X10TAB", "uom": "EA", "sku": "140111041021", "barcodes": ["11000175", "8852616100580"], "systemQty": 30}, "140121060021": {"name": "PROPOLIZ LOZENGE VITAMIN C CITRUS 10X8S\nPROPOLIZ LOZENGE VITAMIN C CITRUS 10X8'S", "uom": "EA", "sku": "140121060021", "barcodes": ["8856513013721", "8856513013714", "8856513013714", "21060021"], "systemQty": 10}, "140117460101": {"name": "YASMIN      1X21 TAB", "uom": "BOX", "sku": "140117460101", "barcodes": ["8854849000712"], "systemQty": 12}, "140407921117": {"name": "UNISON ENEMA 10X10 ML เด็ก", "uom": "PAC", "sku": "140407921117", "barcodes": ["8853935010253", "8853935010239"], "systemQty": 15}, "6412005": {"name": "เมอร์ซี่ สติกเกอร์หัวหอมแดง 1X6'S", "uom": "BOX", "sku": "6412005", "barcodes": ["8851736882260"], "systemQty": 3}, "141016360011": {"name": "CRAVIT 0.5% EYE DROPS 5 ML", "uom": "BT", "sku": "141016360011", "barcodes": ["4987084551184"], "systemQty": 1}, "141006371002": {"name": "AMMELTZ       82 ML \nAMMELTZ       82 ML (ใหญ่)", "uom": "BT", "sku": "141006371002", "barcodes": ["4987072810033"], "systemQty": 3}, "140103081102": {"name": "MERCILON     1X28 TAB", "uom": "BOX", "sku": "140103081102", "barcodes": ["840164515718"], "systemQty": 10}, "140415151001": {"name": "VAPEX    5 ML", "uom": "BT", "sku": "140415151001", "barcodes": ["8850172241303"], "systemQty": 1}, "6207011": {"name": "LATEX EXAMINATION GLOVE SIZE L (GPO)", "uom": "BOX", "sku": "6207011", "barcodes": ["20000339"], "systemQty": 1}, "140116981009": {"name": "FISHERMAN'S (CHERRY)  24X25 G", "uom": "PAC", "sku": "140116981009", "barcodes": ["50084425", "5000357104234"], "systemQty": 5}, "140113841011": {"name": "TELFAST  60 MG   5X10 TAB", "uom": "EA", "sku": "140113841011", "barcodes": ["11000194", "8993237285024"], "systemQty": 15}, "110113031221": {"name": "AMBES-5-AMLODIPINE BESYLATE TAB5MG10X10", "uom": "UNT", "sku": "110113031221", "barcodes": ["8850678304281", "8850678304298", "8850678308757"], "systemQty": 19}, "140100701310": {"name": "STREPSILS +VIT C   24X8 TAB", "uom": "PAC", "sku": "140100701310", "barcodes": ["8850360320049", "8850360320018"], "systemQty": 12}, "140418751201": {"name": "AVAMYS NASAL SPRAY 120 DOSE", "uom": "BT", "sku": "140418751201", "barcodes": ["8851007197093"], "systemQty": 2}, "140103601201": {"name": "FLAVON 10X10 TAB", "uom": "EA", "sku": "140103601201", "barcodes": ["11000068", "8853593001327"], "systemQty": 10}, "141013081101": {"name": "แอมโมเนียหอมสหการ    30 มล.", "uom": "BT", "sku": "141013081101", "barcodes": ["8853428001188"], "systemQty": 2}, "140214991215": {"name": "FISH OIL 1000 MG (MEGA) 100 CAP", "uom": "BT", "sku": "140214991215", "barcodes": ["8850769001747"], "systemQty": 3}, "6402161": {"name": "SOS FACE MASK เด็ก-ชมพู (KTMASK01)", "uom": "SA", "sku": "6402161", "barcodes": ["8859243305425", "8859243305432", "6402161"], "systemQty": 15}, "140213781613": {"name": "VISTRA EPO 1000 MG  45 CAP", "uom": "BT", "sku": "140213781613", "barcodes": ["8851515602928"], "systemQty": 1}, "140216000011": {"name": "CELCOX 200 MG.10X10 CAP.", "uom": "EA", "sku": "140216000011", "barcodes": ["8853428003892", "8853428003878"], "systemQty": 1}, "140720960011": {"name": "INTRASITE GEL    25 G", "uom": "TU", "sku": "140720960011", "barcodes": ["8852266001084"], "systemQty": 1}, "140717600301": {"name": "DIABEDERM CREAM 10 %   35 G", "uom": "TU", "sku": "140717600301", "barcodes": ["8853348009486"], "systemQty": 3}, "140116981013": {"name": "FISHERMAN'S(BLACKCURRANT) 24X25 G", "uom": "PAC", "sku": "140116981013", "barcodes": ["96122839", "5000357106061"], "systemQty": 15}, "140604261001": {"name": "EUCALYPTUS OIL 30 ML", "uom": "BT", "sku": "140604261001", "barcodes": ["8850075009406"], "systemQty": 2}, "6412094": {"name": "TIGER PLASTER WARM  7X10 CM", "uom": "PAC", "sku": "6412094", "barcodes": ["8851990403027", "8851990403034", "8858959001706"], "systemQty": 7}, "140103081003": {"name": "MARVELON         1X28 TAB", "uom": "BOX", "sku": "140103081003", "barcodes": ["840164515695"], "systemQty": 10}, "140103191004": {"name": "MAGESTO   F    1X100 TAB", "uom": "TAB", "sku": "140103191004", "barcodes": ["11000060", "8859203000117"], "systemQty": 400}, "6214120": {"name": "MEDIMASK(สีเขียว)หน้ากาก 3 ชั้น LV1 50S\nMEDIMASK(สีเขียว)หน้ากาก 3 ชั้น LV1 50'S", "uom": "BOX", "sku": "6214120", "barcodes": ["8858959002086", "8858798894118", "6214120", "885959002086"], "systemQty": 10}, "141005110011": {"name": "HYDROGEN PEROXIDE LP 6% 450 ML.", "uom": "BT", "sku": "141005110011", "barcodes": ["8853042001069"], "systemQty": 1}, "140120091012": {"name": "VISTRA COLLAGEN PLUS Q10 30 TAB", "uom": "BT", "sku": "140120091012", "barcodes": ["8851515603154"], "systemQty": 2}, "141005511611": {"name": "KARA SHAMPOO      100 ML", "uom": "BT", "sku": "141005511611", "barcodes": ["8852645540012"], "systemQty": 3}, "140106080012": {"name": "MYBACIN WITH ZINC (LEMON) (40X10 T.)", "uom": "PAC", "sku": "140106080012", "barcodes": ["8852294021016", "8852294021023", "140106080012", "6080012"], "systemQty": 46}, "140117460011": {"name": "MELODIA 21 TAB", "uom": "BOX", "sku": "140117460011", "barcodes": ["8858741500233", "140117460011"], "systemQty": 10}, "140713971012": {"name": "FUCIDIN CREAM        5 G", "uom": "TU", "sku": "140713971012", "barcodes": ["5702191029857"], "systemQty": 5}, "110116190112": {"name": "LOSARTAN GPO-LOSARTAN POTASSIUM TAB50MG", "uom": "TAB", "sku": "110116190112", "barcodes": ["8850678301457", "8850678301464", "8850678245720"], "systemQty": 150}, "6418107": {"name": "ครีมติดฟันปลอม โพลิเด้นท์ 20 กรัม", "uom": "TU", "sku": "6418107", "barcodes": ["8851007143106", "6418107"], "systemQty": 2}, "140811530201": {"name": "ยาน้ำแก้ไอมะแว้ง ตราไอยรา 60 มล.", "uom": "BT", "sku": "140811530201", "barcodes": ["8856513010706", "8857121535711"], "systemQty": 7}, "121002600011": {"name": "CLINDA-M 15 ML", "uom": "BT", "sku": "121002600011", "barcodes": ["8853543010423", "121002600011"], "systemQty": 5}, "140121760111": {"name": "I-HERB OTC 3X6'S", "uom": "EA", "sku": "140121760111", "barcodes": ["8855459008310"], "systemQty": 5}, "140803820011": {"name": "DOMPERDONE SUSPENSION 30 ML.", "uom": "BOX", "sku": "140803820011", "barcodes": ["8852645516017"], "systemQty": 2}, "140113421511": {"name": "ZENSIL   10X10 TAB", "uom": "EA", "sku": "140113421511", "barcodes": ["11000183", "140113421511", "8851102002759"], "systemQty": 12}, "140106701011": {"name": "SYNFLEX  275 MG 10X6  TAB", "uom": "EA", "sku": "140106701011", "barcodes": ["11000121", "5021730031664"], "systemQty": 8}, "141003101701": {"name": "DEXOPH  EYE/EAR    DROPS   4 ML", "uom": "BT", "sku": "141003101701", "barcodes": ["8854927000238", "8854927000320"], "systemQty": 8}, "140706081005": {"name": "VICKS VAPORUB    25 G", "uom": "BT", "sku": "140706081005", "barcodes": ["4987176003485"], "systemQty": 5}, "140123020011": {"name": "CIRCADIN 2 MG PROLONGED RELEASE 2X15 TAB", "uom": "EA", "sku": "140123020011", "barcodes": ["23020011", "5060292652733"], "systemQty": 3}, "140700651003": {"name": "REPARIL GEL N  40 G", "uom": "TU", "sku": "140700651003", "barcodes": ["8858972282397"], "systemQty": 2}, "141013421011": {"name": "ZYRTEC SOLUTION   75 ML", "uom": "BT", "sku": "141013421011", "barcodes": ["8851007197116"], "systemQty": 2}, "6402089": {"name": "SALON PAS 20X10'S", "uom": "PAC", "sku": "6402089", "barcodes": ["8992870509290", "20000022"], "systemQty": 17}, "6412004": {"name": "SOS พลาสเตอร์ป้องกันรองเท้ากัด SIZE M 1X4'S", "uom": "BOX", "sku": "6412004", "barcodes": ["8857122406454"], "systemQty": 3}, "140418071001": {"name": "ผงโยคีโบราณ 60 กรัม", "uom": "BT", "sku": "140418071001", "barcodes": ["8851124420609"], "systemQty": 3}, "140210341011": {"name": "VITAMIN A (MEGA)    100 CAP", "uom": "BT", "sku": "140210341011", "barcodes": ["8850769009187"], "systemQty": 1}, "140416460101": {"name": "ยาหวานชงน้ำเต้าทอง 1X5 ซอง", "uom": "BOX", "sku": "140416460101", "barcodes": ["8850698010049"], "systemQty": 3}, "140110391925": {"name": "VITAMIN C 25 FRX (STRAWBERRY) 30 TAB.", "uom": "PAC", "sku": "140110391925", "barcodes": ["8853428003151", "8858959000754", "140110391925"], "systemQty": 47}, "140717600311": {"name": "DIABEDERM CREAM 20 %    35 G", "uom": "TU", "sku": "140717600311", "barcodes": ["8853348009608"], "systemQty": 3}, "6412172": {"name": "SOS PLUS FAR INFRARED PATCH (12X2'S)", "uom": "EA", "sku": "6412172", "barcodes": ["8859243303193", "8859243304213"], "systemQty": 9}, "140106243622": {"name": "METFOR 500 MG 10X10 TAB", "uom": "EA", "sku": "140106243622", "barcodes": ["140106243622", "1401062436222"], "systemQty": 9}, "140102761613": {"name": "TOLCHICINE     10X10 TAB", "uom": "EA", "sku": "140102761613", "barcodes": ["11000055", "8851881156100"], "systemQty": 7}, "140401311002": {"name": "KAMILLOSAN-M SPRAY  15 ML", "uom": "BT", "sku": "140401311002", "barcodes": ["140401311002", "140401311"], "systemQty": 20}, "6404042": {"name": "สำลีก้อน 0.35 G STERILE (5 ก้อน)", "uom": "PAC", "sku": "6404042", "barcodes": ["8858971500836"], "systemQty": 27}, "140210401112": {"name": "VITAMIN E 200  MEGA (NATURAL) 60 CAP", "uom": "BT", "sku": "140210401112", "barcodes": ["8850769008975"], "systemQty": 2}, "140714371011": {"name": "SKINOREN CREAM     30 G", "uom": "TU", "sku": "140714371011", "barcodes": ["5702191029468", "4260085521012"], "systemQty": 2}, "140110391924": {"name": "VITAMIN C 25 FRX (ORANGE)  30 TAB.", "uom": "PAC", "sku": "140110391924", "barcodes": ["8853428003144", "8858959000747", "140110391924"], "systemQty": 46}, "111005110111": {"name": "HYDROGEN PEROXIDE SOL20VOL30ML", "uom": "BT", "sku": "111005110111", "barcodes": ["8850678180618", "8850678307817"], "systemQty": 5}, "110301790101": {"name": "MIXT. CARMINATIVE180ML", "uom": "BT", "sku": "110301790101", "barcodes": ["8850678140711", "8850678307213"], "systemQty": 3}, "110111990711": {"name": "OEM - METFORMIN 500 MG 50X10 S GPO", "uom": "UNT", "sku": "110111990711", "barcodes": ["8858757015080", "1101119", "110111990711"], "systemQty": 39}, "110113031211": {"name": "AMBES-10-AMLODIPINE BESYLATE TAB10MG10X1", "uom": "UNT", "sku": "110113031211", "barcodes": ["8850678300122", "8850678241630", "8850678309569"], "systemQty": 20}, "110115011221": {"name": "ZIMVA-SIMVASTATIN TAB20MG10X10'S", "uom": "UNT", "sku": "110115011221", "barcodes": ["8850678302522", "8850678241821", "8850678305844"], "systemQty": 7}, "140115221201": {"name": "VISTRA B-COMPLEX    30 TAB", "uom": "BT", "sku": "140115221201", "barcodes": ["8851515602775"], "systemQty": 2}, "140119590021": {"name": "VISTRA L-CARNITINE PLUS 3 L 30 TAB", "uom": "BT", "sku": "140119590021", "barcodes": ["8851515602942"], "systemQty": 2}, "140113031111": {"name": "AMLOPINE  10  MG   10X10 TAB", "uom": "EA", "sku": "140113031111", "barcodes": ["11000178", "8852616100801"], "systemQty": 37}, "140801420311": {"name": "DUTROSS SYR 60 ML", "uom": "BT", "sku": "140801420311", "barcodes": ["8851473000392"], "systemQty": 2}, "110405840114": {"name": "MILK OF MAGNESIA240ML", "uom": "BT", "sku": "110405840114", "barcodes": ["8850678141411", "8850678307251"], "systemQty": 1}, "140116460103": {"name": "ยาขมเม็ดตราใบห่อ 70 เม็ด", "uom": "BOX", "sku": "140116460103", "barcodes": ["8858935800101"], "systemQty": 3}, "140104481513": {"name": "F-MIN  100X10 TAB.", "uom": "EA", "sku": "140104481513", "barcodes": ["11000384", "140104481513"], "systemQty": 47}, "140113731012": {"name": "MYONAL   10X3X10 TAB", "uom": "EA", "sku": "140113731012", "barcodes": ["11000304", "8858682900079", "10000031"], "systemQty": 9}, "140214161311": {"name": "ITRAZOLE  100 MG     25X4 CAP", "uom": "CAP", "sku": "140214161311", "barcodes": ["11000271", "8858922700407"], "systemQty": 80}, "140117131031": {"name": "ARCOXIA 120 MG  1X5 TAB", "uom": "BOX", "sku": "140117131031", "barcodes": ["840164526356"], "systemQty": 3}, "140800432502": {"name": "ANTACIL GEL    240 ML", "uom": "BT", "sku": "140800432502", "barcodes": ["8851473000019"], "systemQty": 3}, "140115221001": {"name": "BLACKMORES EXEC BS   60 TAB\nBLACKMORES EXEC B'S   60 TAB", "uom": "BT", "sku": "140115221001", "barcodes": ["93808590"], "systemQty": 1}, "110706370301": {"name": "ครีมน้ำมันระกำ 15 กรัม", "uom": "TU", "sku": "110706370301", "barcodes": ["8850678160511", "8850678310800", "8850678307473"], "systemQty": 9}, "110213890411": {"name": "FLUZORAL-FLUCONAZOLE CAP200MG5X10S\nFLUZORAL-FLUCONAZOLE CAP*200MG5X10'S", "uom": "CAP", "sku": "110213890411", "barcodes": ["8850678302843", "8850678302850", "8850678022734", "8850678305998"], "systemQty": 40}, "140723630011": {"name": "MEDMAKER VITAMIN E CREAM 50 G", "uom": "TU", "sku": "140723630011", "barcodes": ["8850884001028", "140723630011"], "systemQty": 1}, "140702341011": {"name": "SYSTRAL CREAM    10 G", "uom": "TU", "sku": "140702341011", "barcodes": ["8858789600117"], "systemQty": 7}, "111408030111": {"name": "ยาน้ำโพวิโดนไอโอดีน15มล.(POVIDONE IODINE", "uom": "BT", "sku": "111408030111", "barcodes": ["8850678062617", "8850678310923", "8850678306407"], "systemQty": 15}, "140103141006": {"name": "ยาอมแก้ไอตะขาบ 5 ตัว  1 ซอง", "uom": "PAC", "sku": "140103141006", "barcodes": ["8852761000063", "11000359"], "systemQty": 22}, "140113841022": {"name": "TELFAST 180 MG 1X10 TAB", "uom": "BOX", "sku": "140113841022", "barcodes": ["8993237226072", "140113841022"], "systemQty": 15}, "140122870011": {"name": "NEO-PENOTRAN FORTE 7 TAB", "uom": "BOX", "sku": "140122870011", "barcodes": ["8858741500363", "140122870011"], "systemQty": 3}, "140101221411": {"name": "STEI 24 MG 10X10 TAB", "uom": "EA", "sku": "140101221411", "barcodes": ["140101221", "8850239005053"], "systemQty": 9}, "140110391004": {"name": "BLACKMORES BUFFERED C 500 MG 75 TAB", "uom": "BT", "sku": "140110391004", "barcodes": ["93808286"], "systemQty": 2}, "140113100011": {"name": "CHLOVAS 20 MG 3X10 TAB", "uom": "EA", "sku": "140113100011", "barcodes": ["8858959000914", "8855459007870", "140113100011"], "systemQty": 9}, "140103822413": {"name": "MOTILIUM 3X10 TAB", "uom": "EA", "sku": "140103822413", "barcodes": ["11000076", "8850007850465", "8850583001381"], "systemQty": 17}, "141017760101": {"name": "พิมเสนสำลีน้ำตราโป๊ยเซียน        8 มล.", "uom": "BT", "sku": "141017760101", "barcodes": ["8851447430002"], "systemQty": 14}, "110701230102": {"name": "BETAMETHASONE CREAM 0.1%W/W 15G", "uom": "TU", "sku": "110701230102", "barcodes": ["8850678160023", "8850678310749", "8850678307404"], "systemQty": 3}, "140807291021": {"name": "SARA 250 MG SUSP (ORANGE)  60 ML", "uom": "BT", "sku": "140807291021", "barcodes": ["8851473001047"], "systemQty": 8}, "6405122": {"name": "ชุดทำแผลปลอดเชื้อ ปากคีบ 1 อัน", "uom": "SET", "sku": "6405122", "barcodes": ["20000144"], "systemQty": 16}, "140400161721": {"name": "MYSOVEN 200 MG   60X3 G", "uom": "PAC", "sku": "140400161721", "barcodes": ["8852294617035", "8852294617189"], "systemQty": 106}, "141010031011": {"name": "KELA LOTION   30 ML", "uom": "BT", "sku": "141010031011", "barcodes": ["8851881555378"], "systemQty": 2}, "140114581802": {"name": "NORGESIC   20X2X10 TAB", "uom": "EA", "sku": "140114581802", "barcodes": ["11000001", "9314057023235", "10000035"], "systemQty": 26}, "140100700011": {"name": "MYBACIN OTC MINT (20X8'S)", "uom": "PAC", "sku": "140100700011", "barcodes": ["8852294016012", "8852294016029"], "systemQty": 24}, "140218021112": {"name": "VISTRA COENZYME Q10  60 CAP", "uom": "BT", "sku": "140218021112", "barcodes": ["8851515603703"], "systemQty": 2}, "140807291031": {"name": "SARA 160 MG SUSP (GRAPE) 60 ML", "uom": "BT", "sku": "140807291031", "barcodes": ["8851473003195"], "systemQty": 6}, "140421060011": {"name": "PROPOLIZ MOUTH SPRAY 15 ML", "uom": "BT", "sku": "140421060011", "barcodes": ["140421060011"], "systemQty": 13}, "140104040011": {"name": "TOFAGO 1X10 TAB", "uom": "BOX", "sku": "140104040011", "barcodes": ["8851881019375", "140104040011"], "systemQty": 6}, "140415350111": {"name": "ยาดม เซียงเพียว สูตร 2 (2 ซีซี)", "uom": "EA", "sku": "140415350111", "barcodes": ["8850109011412", "8850109001413"], "systemQty": 14}, "120117970011": {"name": "ยาอมกำกิกเผี่ยง 20 เม็ด", "uom": "BOX", "sku": "120117970011", "barcodes": ["8851802012942", "8851802012478", "120117970011"], "systemQty": 26}, "110117090111": {"name": "MONTELUKAST GPO-MONTELUKAST TAB10MG10X10", "uom": "UNT", "sku": "110117090111", "barcodes": ["8850678312163", "8850678312170"], "systemQty": 16}, "110106700112": {"name": "NAPROXEN TAB250MG50X10'S", "uom": "TAB", "sku": "110106700112", "barcodes": ["8850678301686", "8850678301693", "8850678235929", "8850678308473"], "systemQty": 180}, "110710030112": {"name": "TRIAMCINOLONE CREAM0.1%W/W15G (triam gpo 15 g)", "uom": "TU", "sku": "110710030112", "barcodes": ["8850678310886", "8850678161525", "8850678307633"], "systemQty": 3}, "141014091311": {"name": "NATEAR  EYE DROPS 10 ML", "uom": "BT", "sku": "141014091311", "barcodes": ["8851102003091"], "systemQty": 15}, "6403009": {"name": "NANO PREG TEST STRIP", "uom": "BOX", "sku": "6403009", "barcodes": ["8857121193430"], "systemQty": 12}, "140214991514": {"name": "VISTRA ODORIESS FISH OIL 1000 MG 75 CAP", "uom": "BT", "sku": "140214991514", "barcodes": ["8851515606544"], "systemQty": 1}, "120115370011": {"name": "ยาหอมเม็ดเทพจิตร ตราห้าม้า", "uom": "TU", "sku": "120115370011", "barcodes": ["8856570150018", "8856570150032"], "systemQty": 14}, "6204005": {"name": "GPO BANDAGE 3 X 5 YDS (สำรอง)", "uom": "ROL", "sku": "6204005", "barcodes": ["8850678271118", "8850678271125"], "systemQty": 11}, "140807291011": {"name": "SARA 120 MG SUSP (STRAWBERRY) 60 ML", "uom": "BT", "sku": "140807291011", "barcodes": ["8851473000385"], "systemQty": 4}, "140115481152": {"name": "CALTRATES SILVER 50+60S TH", "uom": "BT", "sku": "140115481152", "barcodes": ["8851005400027", "140115481152"], "systemQty": 2}, "141014621112": {"name": "VISLUBE EYE DROPS 20X0.45 ML", "uom": "BOX", "sku": "141014621112", "barcodes": ["8858989100448"], "systemQty": 6}, "140717470103": {"name": "BEPANTHEN FIRST AID CREAM 30 G", "uom": "TU", "sku": "140717470103", "barcodes": ["8850172243024"], "systemQty": 3}, "140706371203": {"name": "COUNTERPAIN    30 G", "uom": "TU", "sku": "140706371203", "barcodes": ["8995201800219"], "systemQty": 5}, "6412110": {"name": "TIGER PLASTER COOL  7X10 CM", "uom": "EA", "sku": "6412110", "barcodes": ["8851990406028", "8851990410018", "8851990401023", "6412110"], "systemQty": 10}, "140410471011": {"name": "OTRIVINE NASAL MD SPRAY 0.1% 10 ML.(ผู้ใหญ่)", "uom": "BT", "sku": "140410471011", "barcodes": ["8852364000972"], "systemQty": 5}, "6405042": {"name": "KOOLFEVER (ADULTS)  3X2'S", "uom": "PAC", "sku": "6405042", "barcodes": ["21000012", "4987072070321"], "systemQty": 12}, "140708821111": {"name": "SILVERDERM CREAM    25 G", "uom": "TU", "sku": "140708821111", "barcodes": ["8851881715666"], "systemQty": 8}, "140702711614": {"name": "CANESTEN CREAM  20 G", "uom": "TU", "sku": "140702711614", "barcodes": ["8850172230208"], "systemQty": 3}, "140720970012": {"name": "DERMATIX ULTRA   15 G", "uom": "TU", "sku": "140720970012", "barcodes": ["8886456203859"], "systemQty": 3}, "6209004": {"name": "GPO PLAST (ชนิดผ้า) (100'S)", "uom": "BOX", "sku": "6209004", "barcodes": ["8850671270828"], "systemQty": 3}, "120105210311": {"name": "PROBUFEN 400 MG 50X10 TAB\nPROBUFEN 400 MG", "uom": "EA", "sku": "120105210311", "barcodes": ["8859441342277", "8859441342208"], "systemQty": 16}, "140204410011": {"name": "POLI-FLUNARIN 5 MG.50X10 CAP.", "uom": "EA", "sku": "140204410011", "barcodes": ["8858959000488", "8852645461065"], "systemQty": 47}, "6114052": {"name": "OEM-IRISH GPO HYMASK50ชิ้น-หน้ากากอนามัย", "uom": "BOX", "sku": "6114052", "barcodes": ["8859670200140", "8857127382968", "6114052"], "systemQty": 105}, "6412113": {"name": "TENSOPLAST (ผ้า) 1X20'S", "uom": "BOX", "sku": "6412113", "barcodes": ["8850672210038"], "systemQty": 10}, "140100701315": {"name": "STREPSILS MAXIPLUZZ  1X16 TAB", "uom": "BOX", "sku": "140100701315", "barcodes": ["8851198511654"], "systemQty": 1}, "140701231602": {"name": "CANAZOLE-BE CREAM  15 G", "uom": "TU", "sku": "140701231602", "barcodes": ["8851881702642"], "systemQty": 4}, "110113920112": {"name": "FOXETIN-FLUOXETINE TAB20MG50X10'S", "uom": "TAB", "sku": "110113920112", "barcodes": ["8850678256789", "110113920112", "8850678247618", "8858959000969", "8858959000952"], "systemQty": 100}, "120102330121": {"name": "CHLORPHEN 4 MG 100 TAB", "uom": "BT", "sku": "120102330121", "barcodes": ["8858698930039", "120102330121"], "systemQty": 12}, "140119480011": {"name": "LEVOCET 5 MG.10 TAB.", "uom": "BOX", "sku": "140119480011", "barcodes": ["8853144324820"], "systemQty": 3}, "140808751015": {"name": "SELSUN   120 ML", "uom": "BT", "sku": "140808751015", "barcodes": ["8851520060324"], "systemQty": 2}, "140113471721": {"name": "CIPROCEP  500  MG   10X10 TAB", "uom": "EA", "sku": "140113471721", "barcodes": ["11000187", "8851881282106"], "systemQty": 16}, "140205211012": {"name": "GOFEN  400 MG    1X10 CAP", "uom": "BOX", "sku": "140205211012", "barcodes": ["8850769021097"], "systemQty": 32}, "140706371204": {"name": "COUNTERPAIN CREAM 60 G", "uom": "TU", "sku": "140706371204", "barcodes": ["8995201800226"], "systemQty": 8}, "140105630011": {"name": "TANSY ONE 1 TAB", "uom": "BOX", "sku": "140105630011", "barcodes": ["8858741500615", "140105630011"], "systemQty": 15}, "140120271012": {"name": "STREPSILS MAXPRO 24X8 TAB", "uom": "PAC", "sku": "140120271012", "barcodes": ["8850360420015", "8850360420022"], "systemQty": 11}, "110117450111": {"name": "EZETIMIBE GPO-EZETIMIBE TAB10MG3X10'S", "uom": "UNT", "sku": "110117450111", "barcodes": ["8850678312279", "8850678312286"], "systemQty": 9}, "140106243612": {"name": "METFOR 850 MG  10X10 TAB", "uom": "EA", "sku": "140106243612", "barcodes": ["1401062", "8855459009072"], "systemQty": 8}, "140119550011": {"name": "NASOLIN P.L TABLET 24X1X10'S", "uom": "EA", "sku": "140119550011", "barcodes": ["8851473006677", "140119550011", "9550011"], "systemQty": 14}, "111400780102": {"name": "BROWN MIXTURE GPO กล่องเดี่ยว60ML-ยาแก้ไอน้ำดำ กล่องเดี่ยว", "uom": "BT", "sku": "111400780102", "barcodes": ["8850678310893", "8850678060736"], "systemQty": 12}, "140413171407": {"name": "OREDA   (รสธรรมดา) 100X3.3 G", "uom": "PAC", "sku": "140413171407", "barcodes": ["8852914301603", "8852914301610"], "systemQty": 100}, "141014090011": {"name": "MILTEAR MD 0.3% EYE DROPS 1X10 ML.", "uom": "BT", "sku": "141014090011", "barcodes": ["8859446300395", "8859446300135"], "systemQty": 21}, "110110390121": {"name": "VITAMIN C TAB500MG100S (GPO)\nVITAMIN C TAB500MG100'S (GPO)", "uom": "BT", "sku": "110110390121", "barcodes": ["8850678240411", "8850678305820"], "systemQty": 16}, "140119560101": {"name": "NASOTAPP  50X10 TAB", "uom": "EA", "sku": "140119560101", "barcodes": ["11000244", "8853144321843"], "systemQty": 9}, "140817731003": {"name": "REGRO FOR LADY  SHAMPOO 225 ML", "uom": "BT", "sku": "140817731003", "barcodes": ["8850681302199"], "systemQty": 4}, "140805211912": {"name": "NUROFEN FOR CHILDREN SUSP 60 ML", "uom": "BT", "sku": "140805211912", "barcodes": ["8851198420116"], "systemQty": 4}, "140413171402": {"name": "OREDA  (ORANGE)  100X3.3 G", "uom": "PAC", "sku": "140413171402", "barcodes": ["8852914301306", "8852914301313"], "systemQty": 35}, "140997931103": {"name": "POLY-OPH EYE DROP    10 ML", "uom": "BT", "sku": "140997931103", "barcodes": ["140997931103", "8854927000092"], "systemQty": 4}, "140707051032": {"name": "HIRUDOID CREAM  10 G", "uom": "TU", "sku": "140707051032", "barcodes": ["8851743003412"], "systemQty": 2}, "6412117": {"name": "RHINOPLAST (ผ้า) 10X5'S", "uom": "PAC", "sku": "6412117", "barcodes": ["8858758203875", "18858419006187", "8858758202342"], "systemQty": 6}, "140100181121": {"name": "ULTRACARBON N.F. 5X10 TAB", "uom": "EA", "sku": "140100181121", "barcodes": ["9120005550858", "140100181121"], "systemQty": 20}, "140403271011": {"name": "UNIREN SPRAY     60 ML", "uom": "BT", "sku": "140403271011", "barcodes": ["8853935010949"], "systemQty": 3}, "140811530202": {"name": "ยาน้ำแก้ไอมะแว้ง ไลท์ ตราไอยรา 60 มล.", "uom": "BT", "sku": "140811530202", "barcodes": ["8857121535797"], "systemQty": 5}, "110714420112": {"name": "MOMETASONE CREAM 0.10% 15 G", "uom": "TU", "sku": "110714420112", "barcodes": ["8850678161921"], "systemQty": 4}, "140201871112": {"name": "SOLMAX  500 MG  25X10 CAP", "uom": "EA", "sku": "140201871112", "barcodes": ["8851824385048", "8851824385062"], "systemQty": 23}, "140724860011": {"name": "DERMAHEU CREAM 15 G", "uom": "TU", "sku": "140724860011", "barcodes": ["8851473002310"], "systemQty": 4}, "140814370011": {"name": "DEHECTA 3 G.20X20 ML.", "uom": "PAC", "sku": "140814370011", "barcodes": ["8806940015812", "8806940015829"], "systemQty": 36}, "140719630101": {"name": "CYBELE SCAGEL  9 G", "uom": "TU", "sku": "140719630101", "barcodes": ["8858663805508"], "systemQty": 2}, "140308730203": {"name": "ยาธาตุน้ำขาวกระต่ายบิน 200 มล.", "uom": "BT", "sku": "140308730203", "barcodes": ["8851847000904", "11000364"], "systemQty": 24}, "140702621213": {"name": "CLOBET CREAM     10 G", "uom": "TU", "sku": "140702621213", "barcodes": ["8852662300262"], "systemQty": 1}, "140711831012": {"name": "BURNOVA GEL PLUS   25 G", "uom": "TU", "sku": "140711831012", "barcodes": ["8852660607011"], "systemQty": 4}, "140402320021": {"name": "DETTOL HAND SANITIZER SPRAY 50 ML", "uom": "BT", "sku": "140402320021", "barcodes": ["8850360035660"], "systemQty": 5}, "140716441101": {"name": "LIP CARE  24X2 G", "uom": "PAC", "sku": "140716441101", "barcodes": ["8857200055529", "8857200055567"], "systemQty": 18}, "140415351101": {"name": "ยาดมโป๊ยเซียน   1X12 หลอด", "uom": "TU", "sku": "140415351101", "barcodes": ["8851447010006", "8851447010013", "11000291"], "systemQty": 13}, "141000781002": {"name": "HISTA-OPH EYE DROP   10 ML", "uom": "BT", "sku": "141000781002", "barcodes": ["8854927000993"], "systemQty": 6}, "110406530111": {"name": "MINOXIDIL GPO-MINOXIDIL SOL5%W/V60ML", "uom": "BT", "sku": "110406530111", "barcodes": ["8850678304212", "8850678308715"], "systemQty": 2}, "140113031121": {"name": "AMLOPINE 5 MG   10X10 TAB", "uom": "EA", "sku": "140113031121", "barcodes": ["11000179", "8852616100795"], "systemQty": 30}, "141015550011": {"name": "MILTEAR EYE DROPS 30X1 ML", "uom": "BOX", "sku": "141015550011", "barcodes": ["8859446300371"], "systemQty": 2}, "120401310011": {"name": "KAMILLOSAN-M SPRAY 15 ML", "uom": "BT", "sku": "120401310011", "barcodes": ["8858789600018"], "systemQty": 3}, "140702711613": {"name": "CANESTEN CREAM  10 G", "uom": "TU", "sku": "140702711613", "barcodes": ["8850172230109"], "systemQty": 4}, "6402164": {"name": "SOS FACE MASK ผู้ใหญ่-ดำ(MNMASK02)", "uom": "SA", "sku": "6402164", "barcodes": ["8859243305333", "8859243305340", "6402164"], "systemQty": 24}, "6402160": {"name": "SOS FACE MASK ผู้ใหญ่-ขาว(KTMASK02)", "uom": "SA", "sku": "6402160", "barcodes": ["8859243305395", "8859243305401", "6402160", "6012046"], "systemQty": 35}, "140113100021": {"name": "CHLOVAS 40 MG 3X10 TAB", "uom": "EA", "sku": "140113100021", "barcodes": ["8858959000990", "8855459005975"], "systemQty": 9}, "6402250": {"name": "G LUCKY 3D 5ชิ้น/ซอง สีขาว", "uom": "EA", "sku": "6402250", "barcodes": ["8859748900323"], "systemQty": 20}, "140308730204": {"name": "ยาธาตุน้ำขาวกระต่ายบิน 50 มล.", "uom": "BT", "sku": "140308730204", "barcodes": ["11000365", "8851847000010", "8858959002307"], "systemQty": 35}, "140113841121": {"name": "FENAFEX  180 MG   1X10 TAB", "uom": "BOX", "sku": "140113841121", "barcodes": ["8850239000584"], "systemQty": 15}, "140717111104": {"name": "ยาหม่องตราถ้วยทอง   50 กรัม", "uom": "BT", "sku": "140717111104", "barcodes": ["8852197110312", "11000375"], "systemQty": 1}, "6207009": {"name": "LATEX EXAMINATION GLOVE SIZE S (GPO)", "uom": "BOX", "sku": "6207009", "barcodes": ["GPO1113", "20000337"], "systemQty": 1}, "6207010": {"name": "LATEX EXAMINATION GLOVE SIZE M (GPO)", "uom": "BOX", "sku": "6207010", "barcodes": ["GPO1115", "20000338"], "systemQty": 1}, "140125840011": {"name": "ยาอมเซนฮามี่ 20 เม็ด", "uom": "EA", "sku": "140125840011", "barcodes": ["1401258400", "140125840011"], "systemQty": 23}, "140800432202": {"name": "BELCID SUSP      240 ML", "uom": "BT", "sku": "140800432202", "barcodes": ["8852662200005"], "systemQty": 3}, "120421060011": {"name": "PROPOLIZ MOUTH SPRAY 15 ML", "uom": "BT", "sku": "120421060011", "barcodes": ["8857121535131"], "systemQty": 5}, "140100660011": {"name": "AMK 1000 MG 1X10'S", "uom": "BOX", "sku": "140100660011", "barcodes": ["8852673003480", "140100660011"], "systemQty": 14}, "140703271012": {"name": "DIFELENE  GEL    30 G", "uom": "TU", "sku": "140703271012", "barcodes": ["8851473000231"], "systemQty": 6}, "140407921118": {"name": "UNISON ENEMA 10X20 ML ผู้ใหญ่", "uom": "PAC", "sku": "140407921118", "barcodes": ["8853935010260", "8853935010246"], "systemQty": 10}, "140108770011": {"name": "SENOLAX (มะขามแขก)3X20 TAB", "uom": "BOX", "sku": "140108770011", "barcodes": ["8850239004353", "140108770011"], "systemQty": 2}, "6214121": {"name": "MEDIMASK(สีขาว)หน้ากาก 3 ชั้น LV1 50'S", "uom": "BOX", "sku": "6214121", "barcodes": ["8858798894125", "6214121"], "systemQty": 5}, "140215451111": {"name": "VISTRA ZINC 15 MG  45 CAP", "uom": "BT", "sku": "140215451111", "barcodes": ["8858761901089"], "systemQty": 2}, "140701140011": {"name": "DOPROCT SUPPOSITORIES 10 SUPPO", "uom": "BOX", "sku": "140701140011", "barcodes": ["8858954803022", "140701140011"], "systemQty": 5}, "110104480112": {"name": "FOLIC ACID TAB5MG1000'S", "uom": "TAB", "sku": "110104480112", "barcodes": ["8850678300795", "8850678234113", "8850678310015"], "systemQty": 2000}, "140725560011": {"name": "DOPROCT OINTMENT 10 G", "uom": "TU", "sku": "140725560011", "barcodes": ["8858954804012", "140725560011"], "systemQty": 7}, "6405040": {"name": "เมอร์ซี่ ปิโตรเลียมเจลลี่ 50 กรัม", "uom": "EA", "sku": "6405040", "barcodes": ["8851736881706"], "systemQty": 6}, "140110392211": {"name": "NAT C   60 TAB", "uom": "BT", "sku": "140110392211", "barcodes": ["8850769010749"], "systemQty": 1}, "140216970021": {"name": "VISTRA MAGNESIUM COMPLEX PLUS 30 CAP", "uom": "BT", "sku": "140216970021", "barcodes": ["8851515605219", "140216970021"], "systemQty": 1}, "140801641802": {"name": "CADRAMINE-V LOTION  120  ML", "uom": "BT", "sku": "140801641802", "barcodes": ["8853871008260"], "systemQty": 2}, "140109971012": {"name": "BIOCALM   100X10 TAB", "uom": "EA", "sku": "140109971012", "barcodes": ["1401099710", "140109971012"], "systemQty": 69}, "140103511511": {"name": "DENIM   50X10 TAB", "uom": "EA", "sku": "140103511511", "barcodes": ["11000066", "8852914101715"], "systemQty": 38}, "120107290122": {"name": "TYLENOL 500 MG 100 TAB", "uom": "BT", "sku": "120107290122", "barcodes": ["8850583000162", "120107290122", "8850007850496"], "systemQty": 7}, "140714020111": {"name": "GLYCERIN SUPPO (INFANT) 12 TAB", "uom": "BOX", "sku": "140714020111", "barcodes": ["8858022005709"], "systemQty": 4}, "140105163112": {"name": "HYDROXYZINE-FC 10 MG 100X10 TAB", "uom": "EA", "sku": "140105163112", "barcodes": ["11000097", "8855451001913"], "systemQty": 8}, "110100350112": {"name": "ALLOPURINOL TAB100MG50X10S\nALLOPURINOL TAB100MG", "uom": "TAB", "sku": "110100350112", "barcodes": ["8850678305066", "8850678305073", "8850678230122", "8850678309141"], "systemQty": 470}, "140813421211": {"name": "CETTEC SYR  100 ML", "uom": "BT", "sku": "140813421211", "barcodes": ["8855451000732"], "systemQty": 3}, "140105971013": {"name": "METHYCOBAL     3X10 TAB", "uom": "EA", "sku": "140105971013", "barcodes": ["11000109", "8858682900185"], "systemQty": 6}, "140108800221": {"name": "AIR-X 120 MG 50X10 TAB", "uom": "EA", "sku": "140108800221", "barcodes": ["8852673004517", "8852673000311", "8800221"], "systemQty": 35}, "140100161011": {"name": "NAC LONG  600 MG  1X10 TAB", "uom": "TU", "sku": "140100161011", "barcodes": ["14010016", "140100161011"], "systemQty": 13}, "140100841024": {"name": "PRENOLOL 50 MG  50X10 TAB", "uom": "EA", "sku": "140100841024", "barcodes": ["11000025", "8852616100399"], "systemQty": 48}, "140119550201": {"name": "SULIDINE CP 10X10X10 TAB", "uom": "EA", "sku": "140119550201", "barcodes": ["11000243", "10000046"], "systemQty": 7}, "140308901004": {"name": "ยาธาตุน้ำแดง วิทยาศรม 300 มล.", "uom": "BT", "sku": "140308901004", "barcodes": ["8850075001707"], "systemQty": 4}, "140401310011": {"name": "DIFFLAM FORTE THROAT SPRAY 15 ML", "uom": "BT", "sku": "140401310011", "barcodes": ["9314057010297", "140401310011"], "systemQty": 15}, "140415371001": {"name": "ยาหอม 5เจดีย์  เบอร์1      25 กรัม", "uom": "BT", "sku": "140415371001", "barcodes": ["8853084001119", "8853084001164"], "systemQty": 5}, "141017410101": {"name": "CON CON SOL      15 ML", "uom": "BT", "sku": "141017410101", "barcodes": ["8852914200807"], "systemQty": 3}, "111401640111": {"name": "ยาทาแก้ผดผื่นคัน คาลาไมน์60มล.(CALAMINE", "uom": "BT", "sku": "111401640111", "barcodes": ["8850678060910", "8850678306322"], "systemQty": 6}, "140702711101": {"name": "MYDA  B  CREAM   15  G", "uom": "TU", "sku": "140702711101", "barcodes": ["8856513000226"], "systemQty": 5}, "140100651013": {"name": "REPARIL  20 MG  10X10 TAB", "uom": "EA", "sku": "140100651013", "barcodes": ["11000016", "8858972282380"], "systemQty": 7}, "140110391711": {"name": "HICEE  500 MG   15 TAB", "uom": "TU", "sku": "140110391711", "barcodes": ["8851963066082", "8851963066044"], "systemQty": 12}, "6412032": {"name": "NEXCARE MICROPORE 1/2X10YD 1X24 ROLL", "uom": "ROL", "sku": "6412032", "barcodes": ["8850304013204", "3885030401320"], "systemQty": 19}, "6409027": {"name": "TERUMO SYRINGE 3 ML  100'S", "uom": "EA", "sku": "6409027", "barcodes": ["21000033", "20000176"], "systemQty": 76}, "140119481011": {"name": "XYZAL   10  TAB", "uom": "BOX", "sku": "140119481011", "barcodes": ["8851007197215"], "systemQty": 6}, "120100160011": {"name": "NAC LONG  600 MG  1X10 TAB", "uom": "TU", "sku": "120100160011", "barcodes": ["8858789600155"], "systemQty": 16}, "140100192411": {"name": "CLINOVIR 800 MG.  7X5 TAB.", "uom": "TAB", "sku": "140100192411", "barcodes": ["11000308", "8853348005235", "8858959002338"], "systemQty": 35}, "140113841112": {"name": "FENAFEX   60 MG   1X10 TAB", "uom": "BOX", "sku": "140113841112", "barcodes": ["140113841112"], "systemQty": 7}, "6412045": {"name": "SOS PLUS แผ่นฟิล์ใสกันน้ำ PU5X5 2'", "uom": "BOX", "sku": "6412045", "barcodes": ["8859243304732"], "systemQty": 4}, "110405400212": {"name": "ETHYL ALCOHOL 70%V/V (GPO ALCOHOL) 60 ML", "uom": "BT", "sku": "110405400212", "barcodes": ["8850678130132", "8850678307015"], "systemQty": 9}, "110213110212": {"name": "AZYCIN-AZITHROMYCIN CAP250MG1X6S\nAZYCIN-AZITHROMYCIN CAP250MG1X6'S*", "uom": "BOX", "sku": "110213110212", "barcodes": ["8850678023427", "8850678305905"], "systemQty": 8}, "6412033": {"name": "NEXCARE MICROPORE 1X10YD 1X12 ROLL", "uom": "ROL", "sku": "6412033", "barcodes": ["8850304013211", "3885030401321"], "systemQty": 12}, "110405400211": {"name": "ETHYL ALCOHOL 70%V/V (GPO ALCOHOL)450 ML", "uom": "BT", "sku": "110405400211", "barcodes": ["8850678130156", "8850678307039"], "systemQty": 6}, "6409023": {"name": "TERUMO SYRINGE 5 ML  100'S", "uom": "EA", "sku": "6409023", "barcodes": ["21000029", "20000172"], "systemQty": 60}, "6412137": {"name": "NEXCARE แผ่นแปะสิว  1X18'S", "uom": "BOX", "sku": "6412137", "barcodes": ["8850304072140"], "systemQty": 1}, "6412112": {"name": "TENSOPLASTIC ใส  1X20'S", "uom": "BOX", "sku": "6412112", "barcodes": ["8850672314019"], "systemQty": 18}, "141000801003": {"name": "มหาหิงคุ์ วิทยาศรม(ลูกกลิ้ง) 60 มล.", "uom": "BT", "sku": "141000801003", "barcodes": ["8850075016503"], "systemQty": 2}, "6412083": {"name": "TENSOPLASTIC  1X20'S  (สีเนื้อ)", "uom": "BOX", "sku": "6412083", "barcodes": ["8850672313012"], "systemQty": 10}, "141002231911": {"name": "C-20 MOUTH WASH 180 ML", "uom": "BT", "sku": "141002231911", "barcodes": ["8852535000671"], "systemQty": 4}, "6405021": {"name": "เมอร์ซี่ แผ่นเจลลดไข้สำหรับเด็ก (25 ซอง)", "uom": "PAC", "sku": "6405021", "barcodes": ["8851736888118", "8851736888125"], "systemQty": 6}, "6409026": {"name": "TERUMO SYRINGE 50 ML  20'S", "uom": "EA", "sku": "6409026", "barcodes": ["21000032", "20000175"], "systemQty": 13}, "140423610013": {"name": "เมอร์ซี่ สเปรย์กันยุงกลิ่นเฟรช (ส้ม)30ML", "uom": "BT", "sku": "140423610013", "barcodes": ["8851736888415"], "systemQty": 5}, "140717111009": {"name": "TIGER BALM RED         10 G", "uom": "BT", "sku": "140717111009", "barcodes": ["8851990201050", "8851990201057"], "systemQty": 4}, "140113421011": {"name": "ZYRTEC   10 TAB", "uom": "BOX", "sku": "140113421011", "barcodes": ["8851007197185"], "systemQty": 13}, "140417851001": {"name": "ผงพิเศษตราร่มชูชีพ 36X3 กรัม", "uom": "PAC", "sku": "140417851001", "barcodes": ["8854746009993", "8854746000099"], "systemQty": 15}, "120107290211": {"name": "TIFFY DEY 25X4 TAB", "uom": "EA", "sku": "120107290211", "barcodes": ["8851473007698", "8851473007704"], "systemQty": 37}, "6412021": {"name": "SOS PLUS E-SERIES EYE PAD E5 (ผู้ใหญ่)", "uom": "BOX", "sku": "6412021", "barcodes": ["8859243302431"], "systemQty": 1}, "140200181014": {"name": "CA-R-BON  260 MG   10X10 CAP", "uom": "EA", "sku": "140200181014", "barcodes": ["8852294358013", "8852294358037"], "systemQty": 57}, "120107290121": {"name": "TYLENOL 500 MG 100X10 TAB", "uom": "EA", "sku": "120107290121", "barcodes": ["8850007850229", "8850583000322", "120107290121", "7290121"], "systemQty": 93}, "120107610011": {"name": "DECOLGEN PRIN TABLET", "uom": "PAC", "sku": "120107610011", "barcodes": ["8851824336378", "8851824336354", "120107610011"], "systemQty": 15}, "140122810011": {"name": "BILAXTEN 20 MG.1X10 TAB", "uom": "BOX", "sku": "140122810011", "barcodes": ["8858789600827", "140122810011", "140122810011"], "systemQty": 15}, "140617121003": {"name": "น้ำมันกวางลุ้ง  15 มล.", "uom": "BT", "sku": "140617121003", "barcodes": ["8851990211028"], "systemQty": 3}, "141013231502": {"name": "ยาแก้ไอน้ำดำตราเสือดาว 60 มล.", "uom": "BT", "sku": "141013231502", "barcodes": ["8853042000109"], "systemQty": 15}, "140717111103": {"name": "ยาหม่องตราถ้วยทอง  12 กรัม", "uom": "BT", "sku": "140717111103", "barcodes": ["8852197110046", "11000374"], "systemQty": 5}, "6409025": {"name": "TERUMO SYRINGE 20 ML  50'S", "uom": "EA", "sku": "6409025", "barcodes": ["21000031", "20000174"], "systemQty": 23}, "140100461412": {"name": "POLIBROXOL   50X10 TAB", "uom": "EA", "sku": "140100461412", "barcodes": ["11000013", "8852645161040"], "systemQty": 30}, "140714020112": {"name": "GLYCERIN SUPPO (ADULTS)12 TAB", "uom": "BOX", "sku": "140714020112", "barcodes": ["8858022005716"], "systemQty": 4}, "6412142": {"name": "พลาสเตอร์ใสปิดแผลกันน้ำ T3   2'S", "uom": "BOX", "sku": "6412142", "barcodes": ["8857122406119"], "systemQty": 4}, "140103511312": {"name": "DRAMAMINE 50 MG  10X10 TAB", "uom": "EA", "sku": "140103511312", "barcodes": ["8858573000185", "8858573000178"], "systemQty": 24}, "6409024": {"name": "TERUMO SYRINGE 10 ML  100'S", "uom": "EA", "sku": "6409024", "barcodes": ["21000030", "20000173"], "systemQty": 89}, "6402221": {"name": "เครื่องวัดความดันโลหิต ไมโครไลฟ์ รุ่น B1 CLASSIC", "uom": "EA", "sku": "6402221", "barcodes": ["8852713400811", "6402221"], "systemQty": 2}, "6402224": {"name": "MICROLIFE DIGITAL THERMOMETER MT650", "uom": "EA", "sku": "6402224", "barcodes": ["8852713400866", "6402224"], "systemQty": 3}, "140107293714": {"name": "SARA 500 MG   20X10 TAB", "uom": "EA", "sku": "140107293714", "barcodes": ["8851473001443", "8851473003898"], "systemQty": 19}, "140105631001": {"name": "ANNA  1X28 TAB.", "uom": "PAC", "sku": "140105631001", "barcodes": ["8851473008237"], "systemQty": 48}, "140710501011": {"name": "NAPPY HIPPO 25G", "uom": "TU", "sku": "140710501011", "barcodes": ["8850239003431", "11000371"], "systemQty": 3}, "6415036": {"name": "GAUZE 2X2 รถพยาบาล 8 PLY 10X8'S", "uom": "PAC", "sku": "6415036", "barcodes": ["8850185001468", "8850185001499"], "systemQty": 13}, "6402235": {"name": "จุกล้างจมูก คลีน แอนด์ แคร์   2'S", "uom": "BOX", "sku": "6402235", "barcodes": ["8854060901010"], "systemQty": 8}, "140710032114": {"name": "TRINOLONE    25X1 G", "uom": "PAC", "sku": "140710032114", "barcodes": ["8858860100253", "8858860100260"], "systemQty": 2}, "140604261103": {"name": "ยูคาลิปตัส ตราจิงโจ้  8.5 มล.", "uom": "BT", "sku": "140604261103", "barcodes": ["8850672050054"], "systemQty": 3}, "6415037": {"name": "GAUZE 3X3รถพยาบาล 8 PLY 10X8'S", "uom": "PAC", "sku": "6415037", "barcodes": ["8850185001475", "8850185001505"], "systemQty": 4}, "141015350101": {"name": "ยาหม่องน้ำเซียงเพียวอิ๊ว สูตร2(ขาว)  3 มล.", "uom": "BT", "sku": "141015350101", "barcodes": ["8850109001437"], "systemQty": 12}, "141015350104": {"name": "ยาหม่องน้ำเซียงเพียวอิ๊ว สูตร1(แดง)  3 มล.", "uom": "BT", "sku": "141015350104", "barcodes": ["8850109001130"], "systemQty": 8}, "140102941401": {"name": "SUCEE          1X21 TAB", "uom": "BOX", "sku": "140102941401", "barcodes": ["8852662000391"], "systemQty": 5}, "140100192421": {"name": "CLINOVIR 400 MG. 5X5 TAB.", "uom": "TAB", "sku": "140100192421", "barcodes": ["11000330", "8853348003439"], "systemQty": 35}, "141007291411": {"name": "SARA  DROPS   15  ML", "uom": "BT", "sku": "141007291411", "barcodes": ["8851473000958"], "systemQty": 2}, "6412144": {"name": "SOS ผ้าก๊อซปิดแผลพร้อมใช้ รุ่นS2  5'S", "uom": "BOX", "sku": "6412144", "barcodes": ["8857122406126"], "systemQty": 9}, "140103274012": {"name": "DIFELENE 50 MG. 24X10 TAB.", "uom": "EA", "sku": "140103274012", "barcodes": ["8851473005526", "10000131"], "systemQty": 13}, "140710032111": {"name": "TRINOLONE    5 G", "uom": "TU", "sku": "140710032111", "barcodes": ["8858860100246"], "systemQty": 21}, "141008032425": {"name": "BETADINE SOL       15 ML", "uom": "BT", "sku": "141008032425", "barcodes": ["9314057022740"], "systemQty": 6}, "6412141": {"name": "SOS พลาสเตอร์ใสปิดแผลกันน้ำ T2   3'S", "uom": "BOX", "sku": "6412141", "barcodes": ["8857122406102"], "systemQty": 12}, "140106910011": {"name": "PRIMOLUT-N 2X15 TAB.", "uom": "TAB", "sku": "140106910011", "barcodes": ["6910011", "4057598010214", "8858959002031", "140106910011", "8855959002031"], "systemQty": 90}, "6412140": {"name": "SOS พลาสเตอร์ใสปิดแผลกันน้ำ T1   10'S", "uom": "BOX", "sku": "6412140", "barcodes": ["8857122406096"], "systemQty": 6}, "140102941201": {"name": "PREME          1X21 TAB", "uom": "BOX", "sku": "140102941201", "barcodes": ["8851473000323"], "systemQty": 1}, "6402090": {"name": "SOS PLUS ALCOHOL PREP PAD 20 SAC", "uom": "BOX", "sku": "6402090", "barcodes": ["8859243306903"], "systemQty": 5}, "140105780011": {"name": "LEFTOSE 30 MG TAB 50X10S\nLEFTOSE 30 MG TAB 50X10'S", "uom": "EA", "sku": "140105780011", "barcodes": ["5780011", "8858722912581"], "systemQty": 18}, "6402047": {"name": "HASHI REFILL  30S\nHASHI REFILL  30'S", "uom": "BOX", "sku": "6402047", "barcodes": ["8855107000819"], "systemQty": 2}, "6426003": {"name": "KLEAN  KARE (NSS) 1000 ML\nKLEAN & KARE (NSS) 1000 ML", "uom": "BT", "sku": "6426003", "barcodes": ["8854060615030"], "systemQty": 4}, "6405084": {"name": "กล่องใส่ยา  6 ช่อง", "uom": "EA", "sku": "6405084", "barcodes": ["20000140"], "systemQty": 4}, "140108801211": {"name": "AIR-X  (MINT)   50X10 TAB", "uom": "EA", "sku": "140108801211", "barcodes": ["8852673000144", "8852673004463"], "systemQty": 40}, "141002710011": {"name": "CANDIX 1 % SOLUTION 15 ML", "uom": "BT", "sku": "141002710011", "barcodes": ["8858022005747"], "systemQty": 6}, "141008950011": {"name": "OPPLIN EYE WASH 100 ML", "uom": "BT", "sku": "141008950011", "barcodes": ["8851473011619"], "systemQty": 17}, "6426002": {"name": "KLEAN  KARE (NSS) 500 ML\nKLEAN & KARE (NSS) 500 ML", "uom": "BT", "sku": "6426002", "barcodes": ["8854060615023"], "systemQty": 2}, "140706371304": {"name": "NEOTICA BALM   30  G", "uom": "TU", "sku": "140706371304", "barcodes": ["8851473007339", "140706371304"], "systemQty": 10}, "140105160111": {"name": "DORMIRAX 25 MG 10X10S\nDORMIRAX 25 MG 10X10'S", "uom": "EA", "sku": "140105160111", "barcodes": ["140105160111", "8851467039605"], "systemQty": 19}, "6426001": {"name": "KLEAN  KARE (NSS) 100 ML\nKLEAN & KARE (NSS) 100 ML", "uom": "BT", "sku": "6426001", "barcodes": ["8854060615016"], "systemQty": 7}, "6404003": {"name": "COTTON BUD ตรารถพยาบาล100'S (ซอง)", "uom": "EA", "sku": "6404003", "barcodes": ["8850185002601", "8850185000188"], "systemQty": 6}, "6405059": {"name": "SALINE IRRIGATE  1000 ML.", "uom": "BT", "sku": "6405059", "barcodes": ["8853644001689", "6405059"], "systemQty": 14}, "6415042": {"name": "CONFORM 3X5 YDS. 1 ROLL (กวงเตี่ยง)", "uom": "EA", "sku": "6415042", "barcodes": ["8859573600214", "6415042"], "systemQty": 12}};
+const EMBEDDED_BC_TO_SKU = {"8850678305066": "110100350112", "8850678305073": "110100350112", "8850678230122": "110100350112", "8850678309141": "110100350112", "8850678300795": "110104480112", "8850678234113": "110104480112", "8850678310015": "110104480112", "8850678301686": "110106700112", "8850678301693": "110106700112", "8850678235929": "110106700112", "8850678308473": "110106700112", "8850678301655": "110110340102", "8850678235820": "110110340102", "8850678309460": "110110340102", "8850678302461": "110110350501", "8850678239316": "110110350501", "8850678305806": "110110350501", "8850678302430": "110110350602", "8850678238913": "110110350602", "8850678305776": "110110350602", "8850678240411": "110110390121", "8850678305820": "110110390121", "8858757015080": "110111990711", "1101119": "110111990711", "110111990711": "110111990711", "8850678300122": "110113031211", "8850678241630": "110113031211", "8850678309569": "110113031211", "8850678304281": "110113031221", "8850678304298": "110113031221", "8850678308757": "110113031221", "8850678301044": "110113860121", "8850678301051": "110113860121", "8850678250113": "110113860121", "8850678310138": "110113860121", "8850678302546": "110115011211", "8850678241722": "110115011211", "8850678305851": "110115011211", "8850678302522": "110115011221", "8850678241821": "110115011221", "8850678305844": "110115011221", "8859498701355": "110115480111", "110115480111": "110115480111", "8850678301457": "110116190112", "8850678301464": "110116190112", "8850678245720": "110116190112", "110116630111": "110116630111", "8850678304984": "110116630111", "8850678312163": "110117090111", "8850678312170": "110117090111", "8850678312279": "110117450111", "8850678312286": "110117450111", "8859498701546": "110121390111", "110121390111": "110121390111", "8859498705056": "110125490111", "110125490111": "110125490111", "8859498722374": "110125990101", "110125990101": "110125990101", "8859498722367": "110126000101", "110126000101": "110126000101", "8850678303031": "110200660421", "8850678303017": "110200660421", "8850678020150": "110200660421", "8850678306117": "110200660421", "8850678302713": "110202600121", "8850678302720": "110202600121", "8850678024219": "110202600121", "8850678305943": "110202600121", "8850678302980": "110203280321", "8850678302997": "110203280321", "8850678023830": "110203280321", "8850678306094": "110203280321", "8850678312224": "110211750511", "8850678023427": "110213110212", "8850678305905": "110213110212", "8850678302843": "110213890411", "8850678302850": "110213890411", "8850678022734": "110213890411", "8850678305998": "110213890411", "8850678303161": "110214520111", "8850678303178": "110214520111", "8850678024516": "110214520111", "8850678306179": "110214520111", "8850678302898": "110216650011", "8850678302904": "110216650011", "8850678024615": "110216650011", "8850678306025": "110216650011", "8850678311920": "110218940111", "8850678311937": "110218940111", "8859498722350": "110224640111", "8850678140711": "110301790101", "8850678307213": "110301790101", "8850678130132": "110405400212", "8850678307015": "110405400212", "8850678130149": "110405400213", "8850678307022": "110405400213", "8850678141411": "110405840114", "8850678307251": "110405840114", "8850678304212": "110406530111", "8850678308715": "110406530111", "8850678311791": "110412021401", "8850678311814": "110412021402", "8850678160023": "110701230102", "8850678310749": "110701230102", "8850678307404": "110701230102", "8850678304441": "110702730112", "110702730112": "110702730112", "8850678161617": "110703270111", "8850678310787": "110703270111", "8850678307657": "110703270111", "8850678160511": "110706370301", "8850678310800": "110706370301", "8850678307473": "110706370301", "8850678161020": "110708100102", "8850678310848": "110708100102", "8850678307565": "110708100102", "8850678313412": "110711753801", "8850678180618": "111005110111", "8850678307817": "111005110111", "8850678310893": "111400780102", "8850678060736": "111400780102", "8850678060910": "111401640111", "8850678306322": "111401640111", "8850678060316": "111406370101", "8850678306308": "111406370101", "8850678301860": "111407291111", "8850678304199": "111407291111", "8850678311326": "111407291111", "8850678062617": "111408030111", "8850678310923": "111408030111", "8850678306407": "111408030111", "8850678063010": "111408900201", "8850678306414": "111408900201", "8850678190914": "111490002291", "8858789600155": "120100160011", "8858698930039": "120102330121", "120102330121": "120102330121", "8859441342277": "120105210311", "8859441342208": "120105210311", "8850339110527": "120106010011", "8850339110626": "120106010011", "120106010011": "120106010011", "8850007850229": "120107290121", "8850583000322": "120107290121", "120107290121": "120107290121", "7290121": "120107290121", "8850583000162": "120107290122", "120107290122": "120107290122", "8850007850496": "120107290122", "8851473007698": "120107290211", "8851473007704": "120107290211", "8851824336378": "120107610011", "8851824336354": "120107610011", "120107610011": "120107610011", "8853433000329": "120111530301", "8853433000343": "120111530301", "8853433000411": "120112230113", "8856570150018": "120115370011", "8856570150032": "120115370011", "8851802012942": "120117970011", "8851802012478": "120117970011", "120117970011": "120117970011", "11000346": "120211750101", "8853433000435": "120211750101", "11000348": "120211930302", "8853433000398": "120211930302", "8853433000220": "120213871001", "8852616200433": "120214520012", "8853433000770": "120319390101", "8858789600018": "120401310011", "8853433000077": "120711830101", "8853543010423": "121002600011", "121002600011": "121002600011", "14010016": "140100161011", "140100161011": "140100161011", "11000330": "140100192421", "8853348003439": "140100192421", "8853348000766": "140100272311", "8853348003170": "140100272311", "8851473008732": "140100431911", "8851473000040": "140100431911", "8850886103287": "140100461212", "140100461212": "140100461212", "46121212": "140100461212", "11000013": "140100461412", "8852645161040": "140100461412", "11000016": "140100651013", "8858972282380": "140100651013", "8852616600240": "140100661422", "140100661422": "140100661422", "8852294016012": "140100700011", "8852294016029": "140100700011", "8850360310040": "140100701013", "8850360310019": "140100701013", "8850360320049": "140100701310", "8850360320018": "140100701310", "8851198511654": "140100701315", "11000025": "140100841024", "8852616100399": "140100841024", "11000028": "140101221012", "8858682900178": "140101221012", "140101221": "140101221411", "8850239005053": "140101221411", "9300807303986": "140101291011", "8853348005532": "140101360011", "8853348005549": "140101360011", "140101360011": "140101360011", "11000036": "140101423811", "8853144315422": "140101423811", "140101702112": "140101702112", "8855459009669": "140101702112", "140102532412": "140102532412", "8850583003132": "140102532412", "8850172231007": "140102711111", "8850172231106": "140102711121", "11000055": "140102761613", "8851881156100": "140102761613", "8851473000323": "140102941201", "8850172110081": "140102941301", "8852662000391": "140102941401", "840164515695": "140103081003", "840164515688": "140103081006", "840164515701": "140103081101", "840164515718": "140103081102", "8852761000063": "140103141006", "11000359": "140103141006", "11000060": "140103191004", "8859203000117": "140103191004", "8851473005526": "140103274012", "10000131": "140103274012", "8858573000185": "140103511312", "8858573000178": "140103511312", "11000066": "140103511511", "8852914101715": "140103511511", "8851824662095": "140103561203", "8851824000217": "140103561203", "11000067": "140103601011", "3594456400202": "140103601011", "11000068": "140103601201", "8853593001327": "140103601201", "11000074": "140103822312", "8851881189221": "140103822312", "11000076": "140103822413", "8850007850465": "140103822413", "8850583001381": "140103822413", "8851881019375": "140104040011", "140104040011": "140104040011", "11000084": "140104371511", "8850239002861": "140104371511", "11000384": "140104481513", "140104481513": "140104481513", "11000097": "140105163112", "8855451001913": "140105163112", "8850886103294": "140105171612", "8850886103010": "140105171612", "8851005168644": "140105340012", "11000107": "140105551321", "140105551321": "140105551321", "8858741500615": "140105630011", "140105630011": "140105630011", "8851473008237": "140105631001", "5780011": "140105780011", "8858722912581": "140105780011", "8852294021016": "140106080012", "8852294021023": "140106080012", "140106080012": "140106080012", "6080012": "140106080012", "11000120": "140106461621", "8855451002132": "140106461621", "8858793370044": "140106610011", "6910011": "140106910011", "4057598010214": "140106910011", "8858959002031": "140106910011", "140106910011": "140106910011", "8855959002031": "140106910011", "8852673002346": "140106920011", "140106920011": "140106920011", "6920011": "140106920011", "8901296058534": "140107250011", "8858690852216": "140107250011", "8851473001443": "140107293714", "8851473003898": "140107293714", "8851473004338": "140107293718", "8850239004353": "140108770011", "140108770011": "140108770011", "8852673004517": "140108800221", "8852673000311": "140108800221", "8800221": "140108800221", "8852673000144": "140108801211", "8852673004463": "140108801211", "1401099710": "140109971012", "140109971012": "140109971012", "8855451002774": "140110350012", "11000160": "140110351605", "8852881026523": "140110351605", "8858793370037": "140110360021", "8858793370020": "140110390021", "8851515606339": "140110390311", "93808286": "140110391004", "93575768": "140110391021", "8850172251111": "140110391204", "8851963066082": "140110391711", "8851963066044": "140110391711", "8851963174251": "140110391915", "8851963174213": "140110391915", "8853428003144": "140110391924", "8858959000747": "140110391924", "140110391924": "140110391924", "8853428003151": "140110391925", "8858959000754": "140110391925", "140110391925": "140110391925", "8850769010749": "140110392211", "8851005168842": "140110500012", "11000174": "140111041013", "8852616100597": "140111041013", "11000175": "140111041021", "8852616100580": "140111041021", "11000178": "140113031111", "8852616100801": "140113031111", "8858959000914": "140113100011", "8855459007870": "140113100011", "140113100011": "140113100011", "8858959000990": "140113100021", "8855459005975": "140113100021", "8851007197185": "140113421011", "11000183": "140113421511", "140113421511": "140113421511", "8851102002759": "140113421511", "11000187": "140113471721", "8851881282106": "140113471721", "11000304": "140113731012", "8858682900079": "140113731012", "10000031": "140113731012", "11000194": "140113841011", "8993237285024": "140113841011", "8993237226072": "140113841022", "140113841022": "140113841022", "140113841112": "140113841112", "8850239000584": "140113841121", "11000199": "140114271411", "8851102002445": "140114271411", "11000001": "140114581802", "9314057023235": "140114581802", "10000035": "140114581802", "11000205": "140114582511", "8855459000680": "140114582511", "11000209": "140114821021", "8852629346104": "140114821021", "11000210": "140114891711", "8852662000124": "140114891711", "11000221": "140115212011", "8855451000510": "140115212011", "93808590": "140115221001", "8850769008913": "140115221101", "8851515602775": "140115221201", "93566940": "140115481202", "11000223": "140115481701", "8853935012257": "140115481701", "140115880011": "140115880011", "8858959001270": "140115880011", "11000227": "140115881011", "8851963114165": "140115881011", "8858935800101": "140116460103", "8850698019028": "140116460201", "8850698010025": "140116460201", "8855451004051": "140116640111", "840164515527": "140116641013", "11000236": "140116941111", "8852796403006": "140116941111", "8850769022155": "140116970011", "8850679022155": "140116970011", "50084425": "140116981009", "5000357104234": "140116981009", "96083864": "140116981011", "5000357105439": "140116981011", "96122839": "140116981013", "5000357106061": "140116981013", "840164526349": "140117131011", "8858741500233": "140117460011", "140117460011": "140117460011", "8854849000712": "140117460101", "8854849000545": "140117460201", "17870011": "140117870011", "8853466000112": "140117870011", "17870021": "140117870021", "8853466001973": "140117870021", "140117870021": "140117870021", "8850172253009": "140119410102", "4057599004540": "140119410104", "8850172253214": "140119410104", "4057599011456": "140119410111", "8853144324820": "140119480011", "8851007197215": "140119481011", "11000243": "140119550201", "10000046": "140119550201", "11000244": "140119560101", "8853144321843": "140119560101", "8851515602942": "140119590021", "8851515603154": "140120091012", "8850360420015": "140120271012", "8850360420022": "140120271012", "8856513011215": "140121060012", "8856513011208": "140121060012", "8856513013721": "140121060021", "8856513013714": "140121060021", "21060021": "140121060021", "8855459008310": "140121760111", "8850769023565": "140122980011", "140122980011": "140122980011", "23020011": "140123020011", "5060292652733": "140123020011", "93564755": "140123740011", "140123740011": "140123740011", "1401258400": "140125840011", "140125840011": "140125840011", "8852294358013": "140200181014", "8852294358037": "140200181014", "8851824385048": "140201871112", "8851824385062": "140201871112", "10000192": "140203862612", "8852645461232": "140203862612", "3583316669293": "140203880011", "8850769021097": "140205211012", "8850583001831": "140205711215", "8850583001824": "140205711215", "8850769020861": "140206700011", "11000264": "140208241001", "10000051": "140208241001", "8850769009187": "140210341011", "8850769008975": "140210401112", "8851515602928": "140213781613", "11000271": "140214161311", "8858922700407": "140214161311", "8850769001747": "140214991215", "93562645": "140214991422", "8851515606544": "140214991514", "8851515604878": "140215421521", "140215421521": "140215421521", "8858761901089": "140215451111", "8853428003892": "140216000011", "8853428003878": "140216000011", "840149675994": "140216001112", "8851515605219": "140216970021", "140216970021": "140216970021", "8851515603703": "140218021112", "8858761900587": "140218641011", "8851515604908": "140220091011", "8901207029745": "140222190011", "8901207006975": "140222190011", "140226420011": "140226420011", "3760001040661": "140226420011", "8851847000904": "140308730203", "11000364": "140308730203", "11000365": "140308730204", "8851847000010": "140308730204", "8858959002307": "140308730204", "8850075001707": "140308901004", "8857022000134": "140320230101", "8852294617035": "140400161721", "8852294617189": "140400161721", "9314057010297": "140401310011", "140401310011": "140401310011", "140401311002": "140401311002", "140401311": "140401311002", "8850360035660": "140402320021", "8852761002623": "140403140011", "8853935010949": "140403271011", "8859829900983": "140405400611", "4987176187987": "140407181112", "8852881017323": "140407181112", "8858992501485": "140407181411", "7640167724185": "140407671001", "8853935010253": "140407921117", "8853935010239": "140407921117", "8853935010260": "140407921118", "8853935010246": "140407921118", "9314057022832": "140408031012", "3582910052104": "140410031011", "8852364000972": "140410471011", "8852364007100": "140410471021", "8851736888217": "140411920011", "8852655205017": "140413111011", "8853965003126": "140413171303", "8853965003140": "140413171303", "8852914301306": "140413171402", "8852914301313": "140413171402", "8850172241303": "140415151001", "8851447010006": "140415351101", "8851447010013": "140415351101", "11000291": "140415351101", "8855073000011": "140415351601", "11000366": "140415351601", "8855073002268": "140415351603", "140415351603": "140415351603", "8853084001119": "140415371001", "8853084001164": "140415371001", "8850698010049": "140416460101", "8854746009993": "140417851001", "8854746000099": "140417851001", "8851124420609": "140418071001", "8851007197093": "140418751201", "8850109073311": "140419420101", "8850109073335": "140419420101", "15718104308": "140419950012", "140421060011": "140421060011", "8851736888545": "140423610011", "8851736888415": "140423610013", "8850075009406": "140604261001", "8850672050054": "140604261103", "8851990211028": "140617121003", "8853348002678": "140700192311", "8858954803022": "140701140011", "140701140011": "140701140011", "3499320004596": "140701171412", "3499320007269": "140701171414", "8851881702642": "140701231602", "8858789600117": "140702341011", "8856513000226": "140702711101", "8850172230109": "140702711613", "8033661806676": "140703091013", "8850886073207": "140703091013", "8851473000231": "140703271012", "8852364002266": "140703271711", "8850172242140": "140704261001", "8853348004016": "140705511511", "4987176600776": "140706081001", "8995201800257": "140706371102", "8995201800264": "140706371103", "8995201800219": "140706371203", "8995201800226": "140706371204", "8851473007339": "140706371304", "140706371304": "140706371304", "8851743003412": "140707051032", "8851881715666": "140708821111", "8853348010789": "140710020011", "8853348010772": "140710020021", "8858860100246": "140710032111", "8858860100253": "140710032114", "8858860100260": "140710032114", "8853428004028": "140710251001", "8853428001386": "140710251001", "8850239003431": "140710501011", "11000371": "140710501011", "8853348010765": "140711830013", "4030571006534": "140713321001", "5702191029857": "140713971012", "8858022005709": "140714020111", "8858022005716": "140714020112", "5702191029468": "140714371011", "4260085521012": "140714371011", "840164515572": "140714421011", "8850285116024": "140714421011", "8851881701621": "140714441111", "8850886059201": "140714801013", "8857200055529": "140716441101", "8857200055567": "140716441101", "3337875598996": "140717000031", "8851990201050": "140717111009", "8851990201057": "140717111009", "8852197110046": "140717111103", "11000374": "140717111103", "8850172243017": "140717470101", "8850172243055": "140717470102", "8853348009486": "140717600301", "8806557000423": "140717881011", "8852364000446": "140718771011", "8886456203859": "140720970012", "8858954804012": "140725560011", "140725560011": "140725560011", "8852662200005": "140800432202", "8851473000019": "140800432502", "8853144343111": "140800663611", "8853871008260": "140801641802", "8852645506032": "140803291002", "8852645516017": "140803820011", "8002660043375": "140805601111", "8852645553050": "140806531011", "8851473000385": "140807291011", "8851473001047": "140807291021", "8851473003195": "140807291031", "8851520060324": "140808751015", "8852673000519": "140808801001", "8856513010706": "140811530201", "8857121535711": "140811530201", "8857121535797": "140811530202", "8806940015812": "140814370011", "8806940015829": "140814370011", "8994573005352": "140814431301", "8850029038872": "140814751005", "8850029037080": "140814751005", "8850029029528": "140814751044", "8714651100010": "140815641212", "8851473008886": "140819550011", "8851473002198": "140824110011", "140997931103": "140997931103", "8854927000092": "140997931103", "8854927000993": "141000781002", "8852535000671": "141002231911", "8855451001623": "141002232411", "8858022005747": "141002710011", "8854927000238": "141003101701", "8854927000320": "141003101701", "8853042001069": "141005110011", "5036631011103": "141005511312", "8852645540012": "141005511611", "4987072810033": "141006371002", "300650287067": "141006690101", "5413895024146": "141006690101", "8852294552503": "141006711204", "8852294554507": "141006711206", "8851473000958": "141007291411", "9314057022740": "141008032425", "8851473011619": "141008950011", "8854060607011": "141009270011", "8851881555378": "141010031011", "300651418170": "141011251011", "5413895053528": "141011251011", "8853428001188": "141013081101", "8853042000109": "141013231502", "8851007197116": "141013421011", "8859446300395": "141014090011", "8859446300135": "141014090011", "8851102003091": "141014091311", "8859446300333": "141014620011", "141014620011": "141014620011", "8850109001437": "141015350101", "8850109001130": "141015350104", "4987084551184": "141016360011", "8858736900017": "141017370101", "8852914200807": "141017410101", "4897000502742": "141017561013", "8851447430002": "141017760101", "8851447430040": "141017760102", "141017760102": "141017760102", "8852913200914": "141017800102", "8019561140324": "141018591004", "8019561172202": "141018591009", "96060063": "141018691011", "5000158069190": "141018691011", "88503608": "141018691012", "8850360032225": "141018691012", "8850360035622": "141018691014", "8850360035639": "141018691014", "300651431599": "141022410011", "8859670200140": "6114052", "8857127382968": "6114052", "6114052": "6114052", "8859829992995": "6203039", "8850678271118": "6204005", "8850678271125": "6204005", "GPO1113": "6207009", "20000337": "6207009", "GPO1115": "6207010", "20000338": "6207010", "20000339": "6207011", "8850671270828": "6209004", "8858959002086": "6214120", "8858798894118": "6214120", "6214120": "6214120", "885959002086": "6214120", "8855107000802": "6402046", "8855107000819": "6402047", "8992870509290": "6402089", "20000022": "6402089", "8859243306903": "6402090", "8859243305395": "6402160", "8859243305401": "6402160", "6402160": "6402160", "6012046": "6402160", "8859243305364": "6402163", "8859243305371": "6402163", "6402163": "6402163", "3612046": "6402163", "8859243305333": "6402164", "8859243305340": "6402164", "6402164": "6402164", "6402210000": "6402210", "6402210": "6402210", "8852713400811": "6402221", "6402221": "6402221", "8852713400866": "6402224", "6402224": "6402224", "8854060901010": "6402235", "8857127714028": "6402245", "8859748900323": "6402250", "8857121193416": "6403092", "8859829900907": "6403093", "6403093": "6403093", "8857121193423": "6403105", "8850185002601": "6404003", "8850185000188": "6404003", "8858971500836": "6404042", "8851736888118": "6405021", "8851736888125": "6405021", "5052197053739": "6405041", "21000012": "6405042", "4987072070321": "6405042", "8853644001689": "6405059", "6405059": "6405059", "20000144": "6405122", "21000029": "6409023", "20000172": "6409023", "21000030": "6409024", "20000173": "6409024", "21000031": "6409025", "20000174": "6409025", "21000032": "6409026", "20000175": "6409026", "21000033": "6409027", "20000176": "6409027", "8857122406454": "6412004", "8850304013204": "6412032", "3885030401320": "6412032", "8850304013211": "6412033", "3885030401321": "6412033", "8850672313012": "6412083", "8851990403027": "6412094", "8851990403034": "6412094", "8858959001706": "6412094", "8851990406028": "6412110", "8851990410018": "6412110", "8851990401023": "6412110", "6412110": "6412110", "8850672314019": "6412112", "8850672210038": "6412113", "8850672030070": "6412121", "8850672030094": "6412121", "8857122406102": "6412141", "8857122406119": "6412142", "8859243303209": "6412171", "8859243303193": "6412172", "8859243304213": "6412172", "8850185001468": "6415036", "8850185001499": "6415036", "8850185001475": "6415037", "8850185001505": "6415037", "8854060615016": "6426001", "8854060615023": "6426002", "8854060615030": "6426003", "8854060904059": "6426006"};
+
+// ─────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────
+// ─────────────────────────────────────────
+// EXPIRY DATA (วันหมดอายุจาก Excel)
+// ─────────────────────────────────────────
+const EXPIRY_MAP = {"140116641013": 1803772800000, "140701171414": 1806451200000, "6418102": 1807142400000, "140105171612": 1807228800000, "140408681013": 1807315200000, "140816641021": 1807747200000, "140703091013": 1808265600000, "140704261001": 1808611200000, "140706081001": 1809043200000, "140706371103": 1809043200000, "6405126": 1809129600000, "140115212011": 1809907200000, "140714421011": 1810425600000, "140110391204": 1810944000000, "141005511312": 1811376000000, "140107250011": 1811548800000, "6203039": 1811721600000, "140410471021": 1811721600000, "6403093": 1811721600000, "141018691003": 1811721600000, "120213871001": 1812067200000, "140117460201": 1812067200000, "140107294026": 1812153600000, "140403140011": 1813017600000, "110202600121": 1813795200000, "110702730112": 1814054400000, "140413111011": 1814313600000, "140213420011": 1814486400000, "140114821021": 1815004800000, "140214270011": 1815004800000, "140115221101": 1815177600000, "140408031012": 1815177600000, "140714441111": 1815782400000, "140705101112": 1816128000000, "140710020021": 1816214400000, "140800663611": 1816732800000, "140815641212": 1816819200000, "140717470102": 1816992000000, "140117460111": 1816992000000, "140805601111": 1816992000000, "140122980011": 1817078400000, "140103561203": 1817337600000, "140100461212": 1818201600000, "140115481121": 1818201600000, "110405400213": 1819324800000, "120111530301": 1819584000000, "110125990101": 1819584000000, "6418113": 1819584000000, "141006690101": 1819670400000, "140205711215": 1819670400000, "140103601011": 1819670400000, "140102711121": 1819670400000, "141011251013": 1819670400000, "140115881011": 1819756800000, "140222190011": 1819756800000, "111408900201": 1819843200000, "141017800102": 1819843200000, "140420220012": 1819843200000, "110214520111": 1819929600000, "141010990011": 1819929600000, "140117131011": 1820016000000, "140405471213": 1820188800000, "140119410102": 1820275200000, "140710020011": 1820361600000, "140101423212": 1820361600000, "110711753801": 1820534400000, "110224640111": 1821139200000, "140106461621": 1821225600000, "6404023": 1821312000000, "140110352402": 1821484800000, "110126000101": 1821571200000, "140101221012": 1821657600000, "140102941301": 1821916800000, "140402710101": 1821916800000, "140110390311": 1822262400000, "141020760011": 1822262400000, "140105551321": 1822348800000, "140101221331": 1822348800000, "140414421011": 1822694400000, "110203280321": 1822780800000, "110115480111": 1822867200000, "110110340102": 1822953600000, "110121390111": 1822953600000, "110125490111": 1823040000000, "111490002291": 1823558400000, "140203862612": 1823644800000, "6416016": 1824076800000, "120214520012": 1824336000000, "110200660421": 1824681600000, "140407181411": 1824854400000, "6405041": 1824940800000, "6405115": 1824940800000, "141022410011": 1824940800000, "140205211121": 1824940800000, "140701171413": 1824940800000, "6426006": 1825027200000, "110211750511": 1825027200000, "120112230113": 1825286400000, "140111041013": 1825372800000, "140106610011": 1825459200000, "140110360021": 1825459200000, "140110390021": 1825459200000, "110110350502": 1825804800000, "140218641011": 1825977600000, "140114271411": 1826755200000, "140214991422": 1827100800000, "140801871031": 1827100800000, "140106612607": 1827187200000, "140816640211": 1827446400000, "141018691014": 1827532800000, "140407671001": 1827532800000, "140104041011": 1827705600000, "141017370101": 1828569600000, "140110350012": 1828656000000, "140415901011": 1829520000000, "140706371102": 1830211200000, "140405400611": 1830729600000, "111406370101": 1830729600000, "110412021401": 1830816000000, "140100272311": 1831075200000, "140121060012": 1831334400000, "140220091011": 1831420800000, "140700192311": 1831680000000, "120106010011": 1832025600000, "140106920011": 1832112000000, "140703271711": 1832457600000, "140104371511": 1832889600000, "140102711111": 1832889600000, "140717470101": 1832889600000, "140100701013": 1832889600000, "141018691012": 1832889600000, "6402245": 1832976000000, "140407671002": 1832976000000, "140116460201": 1833148800000, "140107293718": 1833235200000, "140320230101": 1833840000000, "6405015": 1833840000000, "140116981011": 1833840000000, "120211930302": 1834099200000, "110216650011": 1834358400000, "140110351605": 1834617600000, "140705511512": 1834617600000, "140114582511": 1834790400000, "140111041021": 1834790400000, "140121060021": 1834963200000, "140117460101": 1835136000000, "140407921117": 1835222400000, "6412005": 1835222400000, "141016360011": 1835395200000, "141006371002": 1835395200000, "140103081102": 1835395200000, "140415151001": 1835481600000, "6207011": 1835481600000, "140116981009": 1835654400000, "140113841011": 1835740800000, "110113031221": 1835913600000, "140100701310": 1836000000000, "140418751201": 1836259200000, "140103601201": 1836864000000, "141013081101": 1836950400000, "140214991215": 1837036800000, "6402161": 1837036800000, "140213781613": 1837382400000, "140216000011": 1837468800000, "140720960011": 1837468800000, "140717600301": 1837555200000, "140116981013": 1837641600000, "140604261001": 1837728000000, "6412094": 1838073600000, "140103081003": 1838073600000, "140103191004": 1838073600000, "6214120": 1838246400000, "141005110011": 1838246400000, "140120091012": 1838332800000, "141005511611": 1838419200000, "140106080012": 1839024000000, "140117460011": 1839196800000, "140713971012": 1839369600000, "110116190112": 1839715200000, "6418107": 1839715200000, "140811530201": 1839974400000, "121002600011": 1840060800000, "140121760111": 1840233600000, "140803820011": 1840492800000, "140113421511": 1840492800000, "140106701011": 1840579200000, "141003101701": 1840665600000, "140706081005": 1840665600000, "140123020011": 1840665600000, "140700651003": 1840665600000, "141013421011": 1840665600000, "6402089": 1840752000000, "6412004": 1841011200000, "140418071001": 1841097600000, "140210341011": 1841097600000, "140416460101": 1841702400000, "140110391925": 1841788800000, "140717600311": 1841875200000, "6412172": 1841875200000, "140106243622": 1842048000000, "140102761613": 1842134400000, "140401311002": 1842220800000, "6404042": 1842307200000, "140210401112": 1842307200000, "140714371011": 1842393600000, "140110391924": 1842393600000, "111005110111": 1842393600000, "110301790101": 1842393600000, "110111990711": 1842393600000, "110113031211": 1842652800000, "110115011221": 1842739200000, "140115221201": 1842739200000, "140119590021": 1842912000000, "140113031111": 1843084800000, "140801420311": 1843171200000, "110405840114": 1843171200000, "140116460103": 1843257600000, "140104481513": 1843344000000, "140113731012": 1843430400000, "140214161311": 1843689600000, "140117131031": 1843776000000, "140800432502": 1843948800000, "140115221001": 1844380800000, "110706370301": 1844899200000, "110213890411": 1844985600000, "140723630011": 1845331200000, "140702341011": 1845331200000, "111408030111": 1845331200000, "140103141006": 1845417600000, "140113841022": 1845417600000, "140122870011": 1845417600000, "140101221411": 1845590400000, "140110391004": 1845590400000, "140113100011": 1845676800000, "140103822413": 1845936000000, "141017760101": 1846022400000, "110701230102": 1846281600000, "140807291021": 1846368000000, "6405122": 1846713600000, "140400161721": 1846713600000, "141010031011": 1846972800000, "140114581802": 1846972800000, "140100700011": 1846972800000, "140218021112": 1847059200000, "140807291031": 1847145600000, "140421060011": 1847145600000, "140104040011": 1847232000000, "140415350111": 1847232000000, "120117970011": 1847318400000, "110117090111": 1847318400000, "110106700112": 1847491200000, "110710030112": 1847491200000, "141014091311": 1847491200000, "6403009": 1847577600000, "140214991514": 1847664000000, "120115370011": 1848009600000, "6204005": 1848009600000, "140807291011": 1848182400000, "140115481152": 1848268800000, "141014621112": 1848441600000, "140717470103": 1848614400000, "140706371203": 1848614400000, "6412110": 1848614400000, "140410471011": 1848614400000, "6405042": 1848614400000, "140708821111": 1848700800000, "140702711614": 1848700800000, "140720970012": 1848700800000, "6209004": 1848700800000, "120105210311": 1848960000000, "140204410011": 1848960000000, "6114052": 1849046400000, "6412113": 1849219200000, "140100701315": 1849305600000, "140701231602": 1849737600000, "110113920112": 1849910400000, "120102330121": 1850342400000, "140119480011": 1850688000000, "140808751015": 1850860800000, "140113471721": 1850947200000, "140205211012": 1851033600000, "140706371204": 1851292800000, "140105630011": 1851379200000, "140120271012": 1851379200000, "110117450111": 1851465600000, "140106243612": 1851552000000, "140119550011": 1851552000000, "111400780102": 1851552000000, "140413171407": 1852588800000, "141014090011": 1852588800000, "110110390121": 1852934400000, "140119560101": 1853107200000, "140817731003": 1853193600000, "140805211912": 1853280000000, "140413171402": 1853280000000, "140997931103": 1853539200000, "140707051032": 1853798400000, "6412117": 1853798400000, "140100181121": 1853884800000, "140403271011": 1854057600000, "140811530202": 1855008000000, "110714420112": 1855353600000, "140201871112": 1855612800000, "140724860011": 1855699200000, "140814370011": 1856304000000, "140719630101": 1856390400000, "140308730203": 1856476800000, "140702621213": 1856563200000, "140711831012": 1856563200000, "140402320021": 1856563200000, "140716441101": 1856649600000, "140415351101": 1856822400000, "141000781002": 1856822400000, "110406530111": 1856908800000, "140113031121": 1857168000000, "141015550011": 1857772800000, "120401310011": 1857859200000, "140702711613": 1857859200000, "6402164": 1857945600000, "6402160": 1857945600000, "140113100021": 1858204800000, "6402250": 1858464000000, "140308730204": 1858896000000, "140113841121": 1858896000000, "140717111104": 1859241600000, "6207009": 1859241600000, "6207010": 1859241600000, "140125840011": 1859673600000, "140800432202": 1859932800000, "120421060011": 1860019200000, "140100660011": 1860192000000, "140703271012": 1860278400000, "140407921118": 1860537600000, "140108770011": 1861142400000, "6214121": 1861142400000, "140215451111": 1862265600000, "140701140011": 1863216000000, "110104480112": 1863302400000, "140725560011": 1863475200000, "6405040": 1863993600000, "140110392211": 1864166400000, "140216970021": 1865462400000, "140801641802": 1867017600000, "140109971012": 1867795200000, "140103511511": 1868745600000, "120107290122": 1869436800000, "140714020111": 1872288000000, "140105163112": 1873324800000, "110100350112": 1873929600000, "140813421211": 1874102400000, "140105971013": 1874620800000, "140108800221": 1874880000000, "140100161011": 1874880000000, "140100841024": 1876089600000, "140119550201": 1876521600000, "140308901004": 1876953600000, "140401310011": 1877472000000, "140415371001": 1877644800000, "141017410101": 1877731200000, "111401640111": 1879286400000, "140702711101": 1879459200000, "140100651013": 1880150400000, "140110391711": 1880150400000, "6412032": 1881187200000, "6409027": 1882828800000, "140119481011": 1882828800000, "120100160011": 1882828800000, "140100192411": 1883088000000, "140113841112": 1885334400000, "6412045": 1887062400000, "110405400212": 1887235200000, "110213110212": 1887494400000, "6412033": 1888876800000, "110405400211": 1890345600000, "6409023": 1890691200000, "6412137": 1890777600000, "6412112": 1891814400000, "141000801003": 1892073600000, "6412083": 1892160000000, "141002231911": 1892246400000, "6405021": 1892937600000, "6409026": 1893369600000, "140423610013": 1894406400000, "140717111009": 1895097600000, "140113421011": 1896048000000, "140417851001": 1896393600000, "120107290211": 1896912000000, "6412021": 1897257600000, "140200181014": 1898294400000, "120107290121": 1898294400000, "120107610011": 1898380800000, "140122810011": 1898467200000, "140617121003": 1899417600000, "141013231502": 1901836800000, "140717111103": 1902096000000, "6409025": 1903737600000, "140100461412": 1904169600000, "140714020112": 1904774400000, "6412142": 1905811200000, "140103511312": 1906243200000, "6409024": 1906416000000, "6402221": 1906502400000, "6402224": 1907539200000, "140107293714": 1907884800000, "140105631001": 1907971200000, "140710501011": 1908576000000, "6415036": 1909008000000, "6402235": 1909094400000, "140710032114": 1909094400000, "140604261103": 1909180800000, "6415037": 1910995200000, "141015350101": 1911686400000, "141015350104": 1911772800000, "140102941401": 1911772800000, "140100192421": 1911859200000, "141007291411": 1912204800000, "6412144": 1912896000000, "140103274012": 1913241600000, "140710032111": 1913328000000, "141008032425": 1913587200000, "6412141": 1914710400000, "140106910011": 1914710400000, "6412140": 1915142400000, "140102941201": 1915228800000, "6402090": 1915228800000, "140105780011": 1917388800000, "6402047": 1918944000000, "6426003": 1919721600000, "6405084": 1919721600000, "140108801211": 1920499200000, "141002710011": 1920585600000, "141008950011": 1921449600000, "6426002": 1922313600000, "140706371304": 1922572800000, "140105160111": 1923696000000, "6426001": 1924819200000, "6404003": 1925424000000, "6405059": 1927152000000, "6415042": 1927670400000};
+
+// ─────────────────────────────────────────
+// FIREBASE CONFIG & REALTIME SYNC
+// ─────────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyAHuls9Kr0F-tQDQ4R5G68EIq1bRKZX5OQ",
+  authDomain: "stock-scanner-chidlom.firebaseapp.com",
+  databaseURL: "https://stock-scanner-chidlom-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "stock-scanner-chidlom",
+  storageBucket: "stock-scanner-chidlom.firebasestorage.app",
+  messagingSenderId: "1047009598102",
+  appId: "1:1047009598102:web:b31a6e8e0928bf5c0980b7",
+  measurementId: "G-MZZ4XP5NLG"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// sync counts ขึ้น Firebase
+function syncToFirebase(code, qty, productName, zone, user) {
+  const ref = db.ref('counts/' + code.replace(/[.#$/[\]]/g, '_'));
+  ref.set({
+    code, qty,
+    name: productName || '',
+    zone: zone || currentZone,
+    user: user || currentUser,
+    updatedAt: Date.now()
+  });
+}
+
+// ฟังการเปลี่ยนแปลงจากคนอื่น real-time
+function startFirebaseListener() {
+  db.ref('counts').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (!data) return;
+    Object.values(data).forEach(item => {
+      if (item && item.code) {
+        counts[item.code] = item.qty;
+      }
+    });
+    try { localStorage.setItem('stock_counts', JSON.stringify(counts)); } catch(e) {}
+    updateBadge();
+    // อัปเดต UI ถ้ากำลังดูรายการอยู่
+    const listPage = document.getElementById('page-list');
+    if (listPage && listPage.classList.contains('active')) renderList();
+  });
+}
+
+// แสดง online indicator
+function updateOnlineStatus() {
+  db.ref('.info/connected').on('value', (snap) => {
+    const el = document.getElementById('firebase-status');
+    if (el) {
+      el.textContent = snap.val() ? '🟢 ซิงค์แล้ว' : '🔴 ออฟไลน์';
+      el.style.color = snap.val() ? 'var(--green)' : 'var(--red)';
+    }
+  });
+}
+
+let products = [];
+let counts   = {};
+let scanning = false;
+let torchOn  = false;
+let currentTrack = null;
+let currentProduct = null;
+let currentZoom = 1;
+let currentUser = '';
+let currentZone = '';
+let selectedZoneChip = '';
+let mergeFiles = [];
+let mergedData = [];
+let unknownCounts = {};
+try { const u2 = localStorage.getItem('stock_unknown'); if(u2) unknownCounts = JSON.parse(u2); } catch(e) {}
+
+// Load from localStorage
+try {
+  // Load embedded product data from Excel
+  products = Object.values(EMBEDDED_SKU_MAP).map(p => ({
+    code: p.sku,
+    name: p.name,
+    category: p.uom,
+    systemQty: p.systemQty,
+    barcodes: p.barcodes
+  }));
+  const c = localStorage.getItem('stock_counts');
+  const u = localStorage.getItem('stock_user');
+  const z = localStorage.getItem('stock_zone');
+  if (c) counts   = JSON.parse(c);
+  if (u) currentUser = u;
+  if (z) currentZone = z;
+} catch(e) {}
+
+function save() {
+  try {
+    localStorage.setItem('stock_products', JSON.stringify(products));
+    localStorage.setItem('stock_counts',   JSON.stringify(counts));
+    localStorage.setItem('stock_user', currentUser);
+    localStorage.setItem('stock_zone', currentZone);
+  } catch(e) {}
+  updateBadge();
+}
+
+// ─────────────────────────────────────────
+// SETUP SCREEN
+// ─────────────────────────────────────────
+function selectZone(el, zone) {
+  document.querySelectorAll('.zone-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedZoneChip = zone;
+  document.getElementById('setup-zone-custom').value = '';
+}
+
+function startApp() {
+  const name = document.getElementById('setup-name').value.trim();
+  const zoneCustom = document.getElementById('setup-zone-custom').value.trim();
+  const zone = zoneCustom || selectedZoneChip;
+
+  if (!name) { document.getElementById('setup-name').focus(); showToast('กรอกชื่อก่อนนะ', 'warn'); return; }
+  if (!zone) { showToast('เลือกโซนด้วยนะ', 'warn'); return; }
+
+  currentUser = name;
+  currentZone = zone;
+  save();
+
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+  document.getElementById('zone-banner').style.display = 'flex';
+  document.getElementById('tabs-and-pages').style.display = 'block';
+  document.getElementById('banner-name').textContent = name;
+  document.getElementById('banner-zone').textContent = zone;
+  document.getElementById('topbar-sub-text').textContent = 'Handheld Scanner';
+  updateBadge();
+  startFirebaseListener();
+  updateOnlineStatus();
+}
+
+// If already set up, skip setup
+if (currentUser && currentZone) {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+  document.getElementById('zone-banner').style.display = 'flex';
+  document.getElementById('tabs-and-pages').style.display = 'block';
+  document.getElementById('banner-name').textContent = currentUser;
+  document.getElementById('banner-zone').textContent = currentZone;
+  startFirebaseListener();
+  updateOnlineStatus();
+}
+
+function save() {
+  try {
+    localStorage.setItem('stock_products', JSON.stringify(products));
+    localStorage.setItem('stock_counts',   JSON.stringify(counts));
+  } catch(e) {}
+  updateBadge();
+}
+
+// ─────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────
+function switchTab(tab) {
+  const tabs = ['scan','import','list','summary','expiry','merge'];
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  if (tab === 'list')    renderList();
+  if (tab === 'summary') renderSummary();
+  if (tab === 'expiry')  renderExpiry();
+}
+
+// ─────────────────────────────────────────
+// EXPIRY
+// ─────────────────────────────────────────
+function getExpiryInfo(sku) {
+  const ts = EXPIRY_MAP[sku];
+  if (!ts) return null;
+  const exp = new Date(ts);
+  const now = new Date();
+  const daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+  return { exp, daysLeft };
+}
+
+function expiryClass(daysLeft) {
+  if (daysLeft <= 0)   return 'expiry-expired';
+  if (daysLeft <= 90)  return 'expiry-critical';
+  if (daysLeft <= 180) return 'expiry-warn';
+  return 'expiry-ok';
+}
+
+function expiryLabel(daysLeft, expDate) {
+  const dateStr = expDate.toLocaleDateString('th-TH', { year:'numeric', month:'short', day:'numeric' });
+  if (daysLeft <= 0)   return { icon:'🔴', text:`หมดอายุแล้ว ${Math.abs(daysLeft)} วัน`, color:'var(--red)', date: dateStr };
+  if (daysLeft <= 90)  return { icon:'🔴', text:`เหลือ ${daysLeft} วัน`, color:'var(--red)', date: dateStr };
+  if (daysLeft <= 180) return { icon:'🟡', text:`เหลือ ${daysLeft} วัน`, color:'var(--yellow)', date: dateStr };
+  return { icon:'🟢', text:`เหลือ ${daysLeft} วัน`, color:'var(--green)', date: dateStr };
+}
+
+function renderExpiry() {
+  const threshold = parseInt(document.getElementById('expiry-days').value) || 365;
+  const sortBy    = document.getElementById('expiry-sort').value;
+  const now       = new Date();
+
+  // Filter products that have expiry within threshold
+  let items = products.map(p => {
+    const info = getExpiryInfo(p.code);
+    if (!info) return null;
+    if (info.daysLeft > threshold) return null;
+    return { ...p, daysLeft: info.daysLeft, expDate: info.exp };
+  }).filter(Boolean);
+
+  if (sortBy === 'date') items.sort((a,b) => a.daysLeft - b.daysLeft);
+  else items.sort((a,b) => a.name.localeCompare(b.name));
+
+  // Stats
+  const expired  = items.filter(i => i.daysLeft <= 0).length;
+  const critical = items.filter(i => i.daysLeft > 0 && i.daysLeft <= 90).length;
+  const warn     = items.filter(i => i.daysLeft > 90 && i.daysLeft <= 180).length;
+  const other    = items.filter(i => i.daysLeft > 180).length;
+
+  document.getElementById('expiry-stats').innerHTML = [
+    expired  ? `<div style="background:rgba(255,82,82,0.15);border:1px solid rgba(255,82,82,0.4);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--red)">🔴 หมดอายุแล้ว ${expired}</div>` : '',
+    critical ? `<div style="background:rgba(255,82,82,0.08);border:1px solid rgba(255,82,82,0.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--red)">🔴 ≤90 วัน: ${critical}</div>` : '',
+    warn     ? `<div style="background:rgba(255,215,64,0.08);border:1px solid rgba(255,215,64,0.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--yellow)">🟡 ≤180 วัน: ${warn}</div>` : '',
+    other    ? `<div style="background:rgba(0,212,255,0.08);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted)">อื่นๆ: ${other}</div>` : '',
+  ].join('');
+
+  if (!items.length) {
+    document.getElementById('expiry-list').innerHTML = `
+      <div class="empty-state"><div class="em-icon">🎉</div>
+      <div class="em-text">ไม่มีสินค้าที่หมดอายุภายใน ${threshold} วัน</div></div>`;
+    return;
+  }
+
+  document.getElementById('expiry-list').innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <tr><th>ชื่อสินค้า</th><th>หมดอายุ</th><th>คงเหลือ</th><th>สถานะ</th></tr>
+        ${items.map(p => {
+          const lbl = expiryLabel(p.daysLeft, p.expDate);
+          const cls = expiryClass(p.daysLeft);
+          return `<tr onclick="switchTab('scan');lookupCode('${p.code}')" style="cursor:pointer">
+            <td style="font-size:12px">
+              <div style="font-weight:700;color:var(--text)">${p.name}</div>
+              <div style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace">${p.code}</div>
+            </td>
+            <td style="font-size:11px;color:var(--muted);white-space:nowrap">${lbl.date}</td>
+            <td class="counted-cell" style="text-align:right">${p.systemQty}</td>
+            <td style="white-space:nowrap">
+              <span style="font-size:12px;font-weight:700;color:${lbl.color}">${lbl.icon} ${lbl.text}</span>
+            </td>
+          </tr>`;
+        }).join('')}
+      </table>
+    </div>`;
+}
+
+// เช็คและแสดง expiry banner ใน result card
+function checkExpiryBanner(sku) {
+  const banner = document.getElementById('r-expiry-banner');
+  const titleEl = document.getElementById('r-expiry-title');
+  const detailEl = document.getElementById('r-expiry-detail');
+  banner.className = 'expiry-banner';
+  banner.style.display = 'none';
+
+  const info = getExpiryInfo(sku);
+  if (!info) return;
+
+  const lbl = expiryLabel(info.daysLeft, info.exp);
+  const cls = expiryClass(info.daysLeft);
+
+  // แสดงเฉพาะถ้า daysLeft <= threshold (ค่าที่ตั้งไว้)
+  const threshold = parseInt(document.getElementById('expiry-days')?.value) || 365;
+  if (info.daysLeft > threshold) return;
+
+  banner.classList.add(cls);
+  banner.style.display = 'block';
+  titleEl.textContent = `${lbl.icon} ${info.daysLeft <= 0 ? 'สินค้าหมดอายุแล้ว!' : 'ใกล้หมดอายุ!'}`;
+  titleEl.style.color = lbl.color;
+  detailEl.textContent = `วันหมดอายุ: ${lbl.date} (${lbl.text})`;
+}
+
+// ─────────────────────────────────────────
+// CAMERA / SCANNER (html5-qrcode)
+// ─────────────────────────────────────────
+let html5Scanner = null;
+
+async function startCamera() {
+  if (scanning) return;
+  document.getElementById('cam-back-bar').style.display = 'block';
+  document.getElementById('cam-start').style.display = 'none';
+  document.getElementById('scan-overlay').style.display = 'flex';
+  document.getElementById('scan-hint').style.display = 'block';
+  document.getElementById('manual-fallback').style.display = 'none';
+  document.getElementById('torch-btn').style.display = 'flex';
+  document.getElementById('reader').style.display = 'block';
+
+  html5Scanner = new Html5Qrcode('reader');
+
+  const config = {
+    fps: 15,
+    qrbox: { width: 280, height: 180 },
+    aspectRatio: 1.5,
+    formatsToSupport: [
+      Html5QrcodeSupportedFormats.EAN_13,
+      Html5QrcodeSupportedFormats.EAN_8,
+      Html5QrcodeSupportedFormats.CODE_128,
+      Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.UPC_A,
+      Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.ITF,
+      Html5QrcodeSupportedFormats.DATA_MATRIX,
+    ],
+    experimentalFeatures: { useBarCodeDetectorIfSupported: true }
+  };
+
+  try {
+    await html5Scanner.start(
+      { facingMode: 'environment' },
+      config,
+      (code) => onScanSuccess(code),
+      () => {}
+    );
+    scanning = true;
+
+    // ดึง track สำหรับ torch และ zoom
+    setTimeout(() => {
+      const video = document.querySelector('#reader video');
+      if (video && video.srcObject) {
+        const tracks = video.srcObject.getVideoTracks();
+        if (tracks.length > 0) {
+          currentTrack = tracks[0];
+          const caps = currentTrack.getCapabilities ? currentTrack.getCapabilities() : {};
+          if (caps.zoom) {
+            document.getElementById('zoom-wrap').classList.add('show');
+            document.getElementById('zoom-btns').style.display = 'flex';
+            document.getElementById('zoom-slider').max = Math.min(caps.zoom.max, 8);
+          }
+        }
+      }
+    }, 1000);
+
+  } catch(err) {
+    showToast('ไม่สามารถเปิดกล้องได้', 'err');
+    resetCamera();
+  }
+}
+
+function stopCamera() {
+  scanning = false;
+  if (html5Scanner) {
+    html5Scanner.stop().catch(() => {});
+    html5Scanner = null;
+  }
+}
+
+function resetCamera() {
+  stopCamera();
+  torchOn = false; currentTrack = null; currentZoom = 1;
+  document.getElementById('cam-back-bar').style.display = 'none';
+  document.getElementById('cam-start').style.display = 'flex';
+  document.getElementById('reader').style.display = 'none';
+  document.getElementById('scan-overlay').style.display = 'none';
+  document.getElementById('scan-hint').style.display = 'none';
+  document.getElementById('torch-btn').style.display = 'none';
+  document.getElementById('torch-btn').classList.remove('on');
+  document.getElementById('zoom-wrap').classList.remove('show');
+  document.getElementById('zoom-btns').style.display = 'none';
+  document.getElementById('zoom-slider').value = 1;
+  document.getElementById('zoom-val').textContent = '1×';
+  document.querySelectorAll('.zoom-preset').forEach((b,i) => b.classList.toggle('active', i===0));
+  document.getElementById('manual-fallback').style.display = 'block';
+}
+
+async function applyZoom(val) {
+  currentZoom = parseFloat(val);
+  document.getElementById('zoom-val').textContent = currentZoom.toFixed(1) + '×';
+  if (currentTrack) try { await currentTrack.applyConstraints({ advanced: [{ zoom: currentZoom }] }); } catch(e) {}
+}
+function setZoom(val, btn) {
+  document.getElementById('zoom-slider').value = val;
+  document.querySelectorAll('.zoom-preset').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyZoom(val);
+}
+
+async function toggleTorch() {
+  const btn = document.getElementById('torch-btn');
+  if (!currentTrack) { showToast('เปิดกล้องก่อนนะ', 'warn'); return; }
+  try {
+    torchOn = !torchOn;
+    await currentTrack.applyConstraints({ advanced: [{ torch: torchOn }] });
+    btn.classList.toggle('on', torchOn);
+    btn.textContent = torchOn ? '💡' : '🔦';
+  } catch(e) {
+    torchOn = !torchOn;
+    showToast('มือถือนี้ไม่รองรับไฟฉาย', 'warn');
+  }
+}
+
+function onScanSuccess(code) {
+  if (currentProduct) return; // already showing result
+  stopCamera();
+  lookupCode(code.trim());
+}
+
+function searchProducts(q) {
+  const box = document.getElementById('product-search-results');
+  if (!q || q.length < 2) { box.innerHTML = ''; return; }
+  const kw = q.toLowerCase();
+  const hits = products.filter(p =>
+    p.name.toLowerCase().includes(kw) ||
+    p.code.toLowerCase().includes(kw) ||
+    (p.barcodes && p.barcodes.some(b => b.includes(kw)))
+  ).slice(0, 8);
+
+  if (!hits.length) {
+    box.innerHTML = `<div style="padding:10px 14px;font-size:13px;color:var(--muted)">ไม่พบสินค้าที่ตรงกัน</div>`;
+    return;
+  }
+  box.innerHTML = hits.map(p => `
+    <div onclick="selectProductFromSearch('${p.code}')"
+      style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);background:var(--surface);font-size:13px;transition:background 0.15s"
+      onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='var(--surface)'">
+      <div style="font-weight:700;color:var(--text)">${p.name}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;font-family:'JetBrains Mono',monospace">${p.code} · ระบบ: ${p.systemQty} ${p.category}</div>
+    </div>`).join('');
+  box.style.border = '1px solid var(--border)';
+  box.style.background = 'var(--surface)';
+}
+
+function selectProductFromSearch(code) {
+  document.getElementById('product-search').value = '';
+  document.getElementById('product-search-results').innerHTML = '';
+  lookupCode(code);
+}
+
+function lookupManual() {
+  const code = document.getElementById('manual-code').value.trim();
+  if (!code) return;
+  lookupCode(code);
+}
+
+function lookupCode(code) {
+  const skuFromBarcode = EMBEDDED_BC_TO_SKU[code];
+  const skuData = skuFromBarcode ? EMBEDDED_SKU_MAP[skuFromBarcode] : null;
+  let prod = products.find(p => p.code === code);
+  if (!prod && skuData) {
+    prod = { code: skuData.sku, name: skuData.name, category: skuData.uom, systemQty: skuData.systemQty, barcodes: skuData.barcodes };
+  }
+  if (!prod) {
+    prod = products.find(p => p.barcodes && p.barcodes.includes(code));
+  }
+  const isUnknown = !prod;
+  currentProduct = prod || { code, name: '', category: '—', systemQty: '—', unknown: true };
+  const lookupKey = currentProduct.code || code;
+
+  document.getElementById('r-code').textContent = currentProduct.code || code;
+  document.getElementById('r-name').textContent = isUnknown ? '(ไม่พบในระบบ)' : currentProduct.name;
+  document.getElementById('r-name').style.color = isUnknown ? 'var(--yellow)' : 'var(--text)';
+  document.getElementById('r-cat').textContent  = currentProduct.category || '—';
+  document.getElementById('r-sys').textContent  = currentProduct.systemQty !== undefined ? currentProduct.systemQty : '—';
+  document.getElementById('r-unknown-wrap').style.display = isUnknown ? 'block' : 'none';
+  document.getElementById('r-meta').style.display = isUnknown ? 'none' : 'flex';
+  document.getElementById('r-custom-name').value = '';
+  document.getElementById('r-already-counted').style.display = 'none';
+
+  const prevCount = counts[lookupKey];
+  document.getElementById('qty-input').value = prevCount !== undefined ? prevCount : 1;
+  updateDiff();
+
+  // เช็ควันหมดอายุ
+  checkExpiryBanner(lookupKey);
+
+  // เช็ค Firebase ว่ามีคนนับไปแล้วไหม
+  db.ref('counts/' + lookupKey.replace(/[.#$/[\]]/g, '_')).once('value', (snap) => {
+    const data = snap.val();
+    if (data && data.qty !== undefined) {
+      const isSelf = data.user === currentUser;
+      const detail = isSelf
+        ? `คุณนับไว้ ${data.qty} ชิ้น (โซน ${data.zone})`
+        : `${data.user} (โซน ${data.zone}) นับไว้ ${data.qty} ชิ้นแล้ว`;
+      document.getElementById('r-already-counted').style.display = 'block';
+      document.getElementById('r-already-detail').textContent = detail;
+      document.getElementById('qty-input').value = data.qty;
+      updateDiff();
+    }
+  });
+
+  document.getElementById('result-card').classList.add('show');
+  document.getElementById('manual-fallback').style.display = 'none';
+
+  if (prod) showToast('✅ พบสินค้า: ' + prod.name, 'ok');
+  else      showToast('⚠️ รหัสนี้ไม่มีในระบบ', 'warn');
+}
+
+function updateDiff() {
+  if (!currentProduct) return;
+  const qty = parseInt(document.getElementById('qty-input').value) || 0;
+  const sys = parseInt(currentProduct.systemQty);
+  const el  = document.getElementById('diff-display');
+
+  if (isNaN(sys)) { el.innerHTML = ''; return; }
+
+  const diff = qty - sys;
+  let cls = diff === 0 ? 'diff-ok' : (Math.abs(diff) <= 2 ? 'diff-warn' : 'diff-err');
+  let icon = diff === 0 ? '✅' : (diff > 0 ? '📈' : '📉');
+  let label = diff === 0 ? 'ยอดตรง' : (diff > 0 ? `เกิน ${diff} ชิ้น` : `ขาด ${Math.abs(diff)} ชิ้น`);
+  el.innerHTML = `<div class="diff-badge ${cls}">${icon} ${label} (${diff > 0 ? '+' : ''}${diff})</div>`;
+}
+
+function adjustQty(delta) {
+  const inp = document.getElementById('qty-input');
+  inp.value = Math.max(0, (parseInt(inp.value) || 0) + delta);
+  updateDiff();
+}
+
+function saveCount() {
+  if (!currentProduct) return;
+  const qty = parseInt(document.getElementById('qty-input').value) || 0;
+
+  if (currentProduct.unknown) {
+    const name = document.getElementById('r-custom-name').value.trim() || '(ไม่ระบุชื่อ)';
+    currentProduct.name = name;
+    unknownCounts[currentProduct.code] = { code: currentProduct.code, name, qty };
+    try { localStorage.setItem('stock_unknown', JSON.stringify(unknownCounts)); } catch(e) {}
+    // sync unknown ขึ้น Firebase ด้วย
+    syncToFirebase(currentProduct.code, qty, name, currentZone, currentUser);
+    showToast(`📝 บันทึก "${name}" ${qty} ชิ้น`, 'warn');
+  } else {
+    counts[currentProduct.code] = qty;
+    save();
+    // sync ขึ้น Firebase real-time
+    syncToFirebase(currentProduct.code, qty, currentProduct.name, currentZone, currentUser);
+    const diff = isNaN(parseInt(currentProduct.systemQty)) ? null : qty - parseInt(currentProduct.systemQty);
+    if (diff === null) showToast('💾 บันทึกแล้ว', 'ok');
+    else if (diff === 0) showToast('✅ ยอดตรง! บันทึกแล้ว', 'ok');
+    else showToast(`⚠️ ต่าง ${diff > 0 ? '+' : ''}${diff} ชิ้น — บันทึกแล้ว`, 'warn');
+  }
+  cancelScan();
+}
+
+function cancelScan() {
+  currentProduct = null;
+  document.getElementById('result-card').classList.remove('show');
+  document.getElementById('manual-code').value = '';
+  document.getElementById('product-search').value = '';
+  document.getElementById('product-search-results').innerHTML = '';
+  document.getElementById('manual-fallback').style.display = 'block';
+  resetCamera();
+}
+
+// ─────────────────────────────────────────
+// IMPORT
+// ─────────────────────────────────────────
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  if (file.name.endsWith('.csv')) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('csv-input').value = e.target.result;
+      importCSV();
+    };
+    reader.readAsText(file, 'UTF-8');
+  } else {
+    // Excel
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const csv = XLSX.utils.sheet_to_csv(ws);
+        document.getElementById('csv-input').value = csv;
+        importCSV();
+      } catch(err) {
+        showToast('อ่านไฟล์ไม่ได้: ' + err.message, 'err');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  input.value = '';
+}
+
+function importCSV() {
+  const raw = document.getElementById('csv-input').value.trim();
+  if (!raw) { showToast('ไม่มีข้อมูล', 'warn'); return; }
+
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) { showToast('ข้อมูลน้อยเกินไป', 'warn'); return; }
+
+  const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g,''));
+  const rows = lines.slice(1);
+
+  // Auto-detect columns
+  const ci = (keywords) => {
+    for (const kw of keywords) {
+      const idx = headers.findIndex(h => h.includes(kw));
+      if (idx >= 0) return idx;
+    }
+    return -1;
+  };
+
+  const codeIdx = ci(['รหัส','code','barcode','id','sku']);
+  const nameIdx = ci(['ชื่อ','name','สินค้า','product']);
+  const catIdx  = ci(['หมวด','category','cat','ประเภท','type']);
+  const sysIdx  = ci(['ยอด','qty','quantity','stock','คงเหลือ','จำนวน']);
+
+  if (codeIdx < 0) { showToast('ไม่พบคอลัมน์รหัสสินค้า', 'err'); return; }
+
+  products = rows.map(row => {
+    const cols = row.split(',').map(c => c.trim().replace(/^"|"$/g,''));
+    return {
+      code:      cols[codeIdx]  || '',
+      name:      nameIdx >= 0 ? cols[nameIdx] || '' : '',
+      category:  catIdx  >= 0 ? cols[catIdx]  || '' : '',
+      systemQty: sysIdx  >= 0 ? (isNaN(parseInt(cols[sysIdx])) ? cols[sysIdx] : parseInt(cols[sysIdx])) : '—'
+    };
+  }).filter(p => p.code);
+
+  save();
+
+  document.getElementById('import-status').textContent = `✅ นำเข้าสำเร็จ ${products.length} รายการ`;
+  showPreview();
+  showToast(`นำเข้า ${products.length} รายการ`, 'ok');
+}
+
+function showPreview() {
+  const preview = products.slice(0, 5);
+  if (!preview.length) return;
+  document.getElementById('preview-wrap').style.display = 'block';
+  document.getElementById('preview-table').innerHTML = `
+    <table>
+      <tr><th>รหัส</th><th>ชื่อสินค้า</th><th>หมวด</th><th>ระบบ</th></tr>
+      ${preview.map(p => `
+        <tr>
+          <td class="code-cell">${p.code}</td>
+          <td>${p.name || '—'}</td>
+          <td>${p.category || '—'}</td>
+          <td style="text-align:right">${p.systemQty}</td>
+        </tr>`).join('')}
+    </table>`;
+}
+
+// ─────────────────────────────────────────
+// LIST
+// ─────────────────────────────────────────
+function renderList() {
+  const q   = (document.getElementById('search-input').value || '').toLowerCase();
+  const fil = document.getElementById('filter-status').value;
+
+  let items = products.length ? products : Object.keys(counts).map(code => ({ code, name: '', category: '', systemQty: '—' }));
+
+  // Add uncounted
+  const allCodes = new Set(products.map(p => p.code));
+  Object.keys(counts).forEach(code => { if (!allCodes.has(code)) items.push({ code, name: '(ไม่มีในระบบ)', category: '', systemQty: '—' }); });
+
+  items = items.filter(p => {
+    const matchQ  = !q || p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q);
+    const counted = counts[p.code] !== undefined;
+    const diff    = counted && !isNaN(parseInt(p.systemQty)) ? counts[p.code] - parseInt(p.systemQty) : null;
+    const matchF  = fil === 'all'
+      || (fil === 'ok'        && diff === 0)
+      || (fil === 'diff'      && diff !== null && diff !== 0)
+      || (fil === 'uncounted' && !counted);
+    return matchQ && matchF;
+  });
+
+  if (!items.length) {
+    document.getElementById('list-container').innerHTML = `<div class="empty-state"><div class="em-icon">🔍</div><div class="em-text">ไม่พบรายการ</div></div>`;
+    return;
+  }
+
+  document.getElementById('list-container').innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <tr><th>รหัส</th><th>ชื่อ</th><th>ระบบ</th><th>นับ</th><th>ต่าง</th></tr>
+        ${items.map(p => {
+          const cnt  = counts[p.code];
+          const sys  = parseInt(p.systemQty);
+          const diff = (cnt !== undefined && !isNaN(sys)) ? cnt - sys : null;
+          const dc   = diff === null ? 'd-none' : diff === 0 ? 'd-ok' : Math.abs(diff) <= 2 ? 'd-warn' : 'd-err';
+          return `<tr onclick="editCount('${p.code}')" style="cursor:pointer">
+            <td class="code-cell">${p.code}</td>
+            <td style="font-size:12px">${p.name || '—'}</td>
+            <td class="counted-cell" style="text-align:right">${isNaN(sys) ? '—' : sys}</td>
+            <td class="counted-cell" style="text-align:right">${cnt !== undefined ? cnt : '<span style="color:var(--muted)">—</span>'}</td>
+            <td class="diff-cell ${dc}" style="text-align:right">${diff !== null ? (diff > 0 ? '+' : '') + diff : '—'}</td>
+          </tr>`;
+        }).join('')}
+      </table>
+    </div>`;
+  renderUnknown();
+}
+
+function renderUnknown() {
+  const items = Object.values(unknownCounts);
+  const sec = document.getElementById('unknown-section');
+  if (!items.length) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  document.getElementById('unknown-table').innerHTML = `
+    <table>
+      <tr><th>Barcode</th><th>ชื่อที่กรอก</th><th>ยอดนับ</th></tr>
+      ${items.map(p => `<tr>
+        <td class="code-cell">${p.code}</td>
+        <td style="font-size:12px">${p.name}</td>
+        <td class="counted-cell" style="text-align:right">${p.qty}</td>
+      </tr>`).join('')}
+    </table>`;
+}
+
+function clearUnknown() {
+  if (!confirm('ล้างรายการนอกระบบทั้งหมด?')) return;
+  unknownCounts = {};
+  try { localStorage.removeItem('stock_unknown'); } catch(e) {}
+  renderUnknown();
+  showToast('ล้างแล้ว', 'warn');
+}
+
+function editCount(code) {
+  switchTab('scan');
+  lookupCode(code);
+}
+
+function clearAll() {
+  if (!confirm('ล้างยอดนับทั้งหมด?')) return;
+  counts = {};
+  save();
+  renderList();
+  showToast('ล้างแล้ว', 'warn');
+}
+
+// ─────────────────────────────────────────
+// SUMMARY
+// ─────────────────────────────────────────
+function renderSummary() {
+  const total   = products.length || Object.keys(counts).length;
+  const counted = Object.keys(counts).length;
+  let ok = 0, diff = 0;
+  let diffRows = [];
+
+  products.forEach(p => {
+    const cnt = counts[p.code];
+    const sys = parseInt(p.systemQty);
+    if (cnt !== undefined && !isNaN(sys)) {
+      const d = cnt - sys;
+      if (d === 0) ok++;
+      else { diff++; diffRows.push({ ...p, counted: cnt, diff: d }); }
+    }
+  });
+
+  document.getElementById('s-total').textContent   = total;
+  document.getElementById('s-counted').textContent = counted;
+  document.getElementById('s-ok').textContent      = ok;
+  document.getElementById('s-diff').textContent    = diff;
+
+  if (!diffRows.length) {
+    document.getElementById('diff-table').innerHTML = `<div class="empty-state"><div class="em-icon">🎉</div><div class="em-text">ยอดตรงทั้งหมด!</div></div>`;
+  } else {
+    document.getElementById('diff-table').innerHTML = `
+      <table>
+        <tr><th>รหัส</th><th>ชื่อ</th><th>ระบบ</th><th>นับ</th><th>ต่าง</th></tr>
+        ${diffRows.map(p => {
+          const dc = Math.abs(p.diff) <= 2 ? 'd-warn' : 'd-err';
+          return `<tr>
+            <td class="code-cell">${p.code}</td>
+            <td style="font-size:12px">${p.name}</td>
+            <td class="counted-cell" style="text-align:right">${p.systemQty}</td>
+            <td class="counted-cell" style="text-align:right">${p.counted}</td>
+            <td class="diff-cell ${dc}" style="text-align:right">${p.diff > 0 ? '+' : ''}${p.diff}</td>
+          </tr>`;
+        }).join('')}
+      </table>`;
+  }
+}
+
+// ─────────────────────────────────────────
+// EXPORT
+// ─────────────────────────────────────────
+function syncAllToFirebase() {
+  const items = Object.keys(counts);
+  if (!items.length) { showToast('ไม่มีข้อมูลที่จะซิงค์', 'warn'); return; }
+
+  const btn = document.getElementById('sync-all-btn');
+  const desc = btn.querySelector('.export-desc');
+  desc.textContent = `กำลังซิงค์ ${items.length} รายการ...`;
+  btn.style.opacity = '0.6';
+  btn.style.pointerEvents = 'none';
+
+  let done = 0;
+  items.forEach(code => {
+    const prod = products.find(p => p.code === code);
+    syncToFirebase(code, counts[code], prod ? prod.name : '', currentZone, currentUser);
+    done++;
+    if (done === items.length) {
+      // sync unknown ด้วย
+      Object.values(unknownCounts).forEach(u => {
+        syncToFirebase(u.code, u.qty, u.name, currentZone, currentUser);
+      });
+      setTimeout(() => {
+        desc.textContent = `✅ ซิงค์ ${items.length} รายการเสร็จแล้ว!`;
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+        showToast(`☁️ ซิงค์ขึ้น Firebase ${items.length} รายการแล้ว!`, 'ok');
+      }, 800);
+    }
+  });
+}
+
+function exportCSV() {
+  let rows = [['รหัสสินค้า','ชื่อสินค้า','หมวดหมู่','ยอดระบบ','ยอดนับ','ผลต่าง','สถานะ','โซน','ผู้นับ']];
+  products.forEach(p => {
+    const cnt  = counts[p.code];
+    const sys  = parseInt(p.systemQty);
+    const diff = (cnt !== undefined && !isNaN(sys)) ? cnt - sys : '';
+    const status = diff === '' ? 'ยังไม่นับ' : diff === 0 ? 'ตรง' : diff > 0 ? 'เกิน' : 'ขาด';
+    rows.push([p.code, p.name, p.category, isNaN(sys) ? '' : sys, cnt ?? '', diff, status, currentZone, currentUser]);
+  });
+
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `stock_${currentZone}_${currentUser}_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('ดาวน์โหลด CSV แล้ว', 'ok');
+}
+
+function exportSummaryText() {
+  const date = new Date().toLocaleDateString('th-TH');
+  let text = `📦 ผลนับสต๊อก วันที่ ${date}\n`;
+  text += '─'.repeat(30) + '\n';
+
+  let ok = 0, diffList = [];
+  products.forEach(p => {
+    const cnt = counts[p.code];
+    const sys = parseInt(p.systemQty);
+    if (cnt !== undefined && !isNaN(sys)) {
+      const d = cnt - sys;
+      if (d === 0) ok++;
+      else diffList.push(`❌ ${p.code} ${p.name}: ต่าง ${d > 0 ? '+' : ''}${d} (ระบบ ${sys}, นับ ${cnt})`);
+    }
+  });
+
+  text += `✅ ยอดตรง: ${ok} รายการ\n`;
+  text += `❌ ยอดต่าง: ${diffList.length} รายการ\n\n`;
+  if (diffList.length) text += diffList.join('\n');
+
+  navigator.clipboard.writeText(text).then(() => showToast('คัดลอกแล้ว!', 'ok')).catch(() => showToast('คัดลอกไม่ได้', 'err'));
+}
+
+// ─────────────────────────────────────────
+// MERGE
+// ─────────────────────────────────────────
+function handleMergeFiles(input) {
+  Array.from(input.files).forEach(file => {
+    if (!mergeFiles.find(f => f.name === file.name)) {
+      mergeFiles.push(file);
+    }
+  });
+  input.value = '';
+  renderMergeFileList();
+}
+
+function renderMergeFileList() {
+  const list = document.getElementById('merge-file-list');
+  if (!mergeFiles.length) { list.innerHTML = ''; document.getElementById('merge-btn').style.display = 'none'; return; }
+  document.getElementById('merge-btn').style.display = 'block';
+  list.innerHTML = mergeFiles.map((f, i) => `
+    <div class="merge-file-item">
+      <div>
+        <div class="merge-file-name">📄 ${f.name}</div>
+        <div class="merge-file-meta">${(f.size/1024).toFixed(1)} KB</div>
+      </div>
+      <span class="merge-file-del" onclick="removeMergeFile(${i})">✕</span>
+    </div>`).join('');
+}
+
+function removeMergeFile(i) {
+  mergeFiles.splice(i, 1);
+  renderMergeFileList();
+}
+
+async function doMerge() {
+  if (!mergeFiles.length) return;
+  document.getElementById('merge-progress-wrap').style.display = 'block';
+  document.getElementById('merge-result').style.display = 'none';
+
+  const allRows = [];
+  for (let i = 0; i < mergeFiles.length; i++) {
+    const pct = Math.round((i / mergeFiles.length) * 100);
+    document.getElementById('merge-progress-bar').style.width = pct + '%';
+    document.getElementById('merge-progress-label').textContent = `กำลังอ่าน: ${mergeFiles[i].name}`;
+
+    const text = await mergeFiles[i].text();
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const isHeader = lines[0].toLowerCase().includes('รหัส') || lines[0].toLowerCase().includes('code');
+    const dataLines = isHeader ? lines.slice(1) : lines;
+
+    dataLines.forEach(line => {
+      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      if (cols[0]) allRows.push(cols);
+    });
+  }
+
+  document.getElementById('merge-progress-bar').style.width = '100%';
+  document.getElementById('merge-progress-label').textContent = 'รวมเสร็จแล้ว!';
+
+  // Merge: group by code, sum counted
+  const merged = {};
+  allRows.forEach(cols => {
+    const code = cols[0]; if (!code) return;
+    const name = cols[1] || '';
+    const cat  = cols[2] || '';
+    const sys  = parseInt(cols[3]);
+    const cnt  = parseInt(cols[4]);
+    const zone = cols[7] || '—';
+    const user = cols[8] || '—';
+
+    if (!merged[code]) merged[code] = { code, name, cat, sys: isNaN(sys) ? null : sys, counted: 0, zones: [], users: [] };
+    if (!isNaN(cnt)) merged[code].counted += cnt;
+    if (zone !== '—' && !merged[code].zones.includes(zone)) merged[code].zones.push(zone);
+    if (user !== '—' && !merged[code].users.includes(user)) merged[code].users.push(user);
+  });
+
+  mergedData = Object.values(merged);
+
+  // Stats
+  let total = mergedData.length, ok = 0, diffCount = 0, zonesSet = new Set();
+  mergedData.forEach(r => {
+    if (r.sys !== null) {
+      const d = r.counted - r.sys;
+      if (d === 0) ok++; else diffCount++;
+    }
+    r.zones.forEach(z => zonesSet.add(z));
+  });
+
+  document.getElementById('merge-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-num" style="color:var(--accent)">${total}</div><div class="stat-label">รายการรวม</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--text)">${zonesSet.size}</div><div class="stat-label">โซนที่รวม</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--green)">${ok}</div><div class="stat-label">✅ ยอดตรง</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--red)">${diffCount}</div><div class="stat-label">❌ ยอดต่าง</div></div>`;
+
+  const diffRows = mergedData.filter(r => r.sys !== null && r.counted !== r.sys);
+  document.getElementById('merge-diff-table').innerHTML = diffRows.length
+    ? `<table>
+        <tr><th>รหัส</th><th>ชื่อ</th><th>ระบบ</th><th>นับรวม</th><th>ต่าง</th></tr>
+        ${diffRows.map(r => {
+          const d = r.counted - r.sys;
+          const dc = Math.abs(d) <= 2 ? 'd-warn' : 'd-err';
+          return `<tr><td class="code-cell">${r.code}</td><td style="font-size:12px">${r.name}</td>
+            <td class="counted-cell" style="text-align:right">${r.sys}</td>
+            <td class="counted-cell" style="text-align:right">${r.counted}</td>
+            <td class="diff-cell ${dc}" style="text-align:right">${d > 0 ? '+' : ''}${d}</td></tr>`;
+        }).join('')}
+      </table>`
+    : `<div class="empty-state"><div class="em-icon">🎉</div><div class="em-text">ยอดตรงทั้งหมด!</div></div>`;
+
+  document.getElementById('merge-result').style.display = 'block';
+  showToast(`รวม ${mergeFiles.length} ไฟล์ เสร็จแล้ว!`, 'ok');
+}
+
+function exportMergedCSV() {
+  let rows = [['รหัสสินค้า','ชื่อสินค้า','หมวดหมู่','ยอดระบบ','ยอดนับรวม','ผลต่าง','สถานะ','โซนที่นับ','ผู้นับ']];
+  mergedData.forEach(r => {
+    const diff = r.sys !== null ? r.counted - r.sys : '';
+    const status = diff === '' ? '—' : diff === 0 ? 'ตรง' : diff > 0 ? 'เกิน' : 'ขาด';
+    rows.push([r.code, r.name, r.cat, r.sys ?? '', r.counted, diff, status, r.zones.join('/'), r.users.join('/')]);
+  });
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `stock_merged_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('ดาวน์โหลดผลรวมแล้ว', 'ok');
+}
+
+function exportMergedText() {
+  const date = new Date().toLocaleDateString('th-TH');
+  let ok = 0, diffList = [];
+  mergedData.forEach(r => {
+    if (r.sys !== null) {
+      const d = r.counted - r.sys;
+      if (d === 0) ok++;
+      else diffList.push(`❌ ${r.code} ${r.name}: ต่าง ${d > 0 ? '+' : ''}${d} (ระบบ ${r.sys}, นับ ${r.counted})`);
+    }
+  });
+  const zones = [...new Set(mergedData.flatMap(r => r.zones))].join(', ');
+  let text = `📦 ผลนับสต๊อกรวม วันที่ ${date}\n🗂 โซนที่นับ: ${zones}\n${'─'.repeat(30)}\n`;
+  text += `✅ ยอดตรง: ${ok} รายการ\n❌ ยอดต่าง: ${diffList.length} รายการ\n\n`;
+  if (diffList.length) text += diffList.join('\n');
+  navigator.clipboard.writeText(text).then(() => showToast('คัดลอกแล้ว!', 'ok')).catch(() => showToast('คัดลอกไม่ได้', 'err'));
+}
+
+// ─────────────────────────────────────────
+// ─────────────────────────────────────────
+function updateBadge() {
+  const done = Object.keys(counts).length;
+  const total = products.length || 437;
+  document.getElementById('count-badge').textContent = done + ' / ' + total;
+}
+
+let toastTimer;
+function showToast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + type;
+  clearTimeout(toastTimer);
+  setTimeout(() => el.classList.add('show'), 10);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// Init
+updateBadge();
+if (products.length && (currentUser && currentZone)) showPreview();
+</script>
+</body>
+</html>
