@@ -11,22 +11,17 @@
   @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
 
   :root {
-    --bg: #fdf8f3;             /* พื้นหลังครีมอ่อน */
-    --bg2: #ffffff;            /* พื้นหลังที่ขาวกว่า */
-    --surface: #ffffff;        /* การ์ด/พื้นที่หลัก */
-    --surface2: #fef2ec;       /* พื้นที่รอง */
-    --border: #f0e0d0;         /* เส้นขอบนุ่มๆ สีครีม */
-    --accent: #e74c3c;         /* แดงส้มหลัก (icon) */
-    --accent2: #c0392b;        /* แดงเข้ม (hover) */
-    --accent-soft: #fde4dd;    /* แดงอ่อน (background icon) */
-    --green: #27ae60;          /* เขียว */
-    --green-soft: #d5f0e0;
-    --red: #e74c3c;            /* แดง = สีเดียวกับ accent */
-    --red-soft: #fde4dd;
-    --yellow: #f39c12;         /* ส้มเหลือง */
-    --yellow-soft: #fef0d6;
-    --text: #2c1810;           /* ข้อความเข้ม */
-    --muted: #8b7568;          /* ข้อความรอง สีน้ำตาลอ่อน */
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #0099cc;
+    --green: #00e676;
+    --red: #ff5252;
+    --yellow: #ffd740;
+    --text: #e8f4fd;
+    --muted: #6b8cae;
     --radius: 16px;
   }
 
@@ -51,7 +46,6 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    box-shadow: 0 1px 3px rgba(231,76,60,0.06);
   }
   .topbar-title {
     font-size: 17px;
@@ -63,7 +57,7 @@
 
   .badge {
     background: var(--accent);
-    color: #fff;
+    color: var(--bg);
     font-size: 11px;
     font-weight: 700;
     padding: 3px 10px;
@@ -172,16 +166,16 @@
     display: none;
     animation: slideUp 0.3s ease;
   }
-  .expiry-expired  { background: rgba(231,76,60,0.10); border: 2px solid rgba(231,76,60,0.4); }
-  .expiry-critical { background: rgba(231,76,60,0.06); border: 1px solid rgba(231,76,60,0.3); }
-  .expiry-warn     { background: rgba(243,156,18,0.08); border: 1px solid rgba(243,156,18,0.3); }
-  .expiry-ok       { background: rgba(39,174,96,0.06); border: 1px solid rgba(39,174,96,0.25); }
+  .expiry-expired  { background: rgba(0,212,255,0.15); border: 2px solid rgba(0,212,255,0.4); }
+  .expiry-critical { background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.3); }
+  .expiry-warn     { background: rgba(255,215,64,0.08); border: 1px solid rgba(255,215,64,0.4); }
+  .expiry-ok       { background: rgba(0,230,118,0.06); border: 1px solid rgba(0,230,118,0.3); }
   .expiry-title    { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
   .expiry-detail   { font-size: 12px; color: var(--muted); }
 
     .unknown-wrap {
-    background: rgba(243,156,18,0.08);
-    border: 1px solid rgba(243,156,18,0.25);
+    background: rgba(255,215,64,0.08);
+    border: 1px solid rgba(255,215,64,0.3);
     border-radius: 14px;
     padding: 12px 14px;
     margin-bottom: 12px;
@@ -198,7 +192,7 @@
   .unknown-input {
     width: 100%;
     background: var(--surface);
-    border: 1px solid rgba(243,156,18,0.4);
+    border: 1px solid rgba(255,215,64,0.5);
     border-radius: 12px;
     padding: 11px 14px;
     color: var(--text);
@@ -232,7 +226,7 @@
     color: var(--muted); font-size: 12px; font-weight: 700;
     cursor: pointer; font-family: 'Sarabun', sans-serif; transition: all 0.15s;
   }
-  .zoom-preset.active { background: rgba(231,76,60,0.10); border-color: var(--accent); color: var(--accent); }
+  .zoom-preset.active { background: rgba(0,212,255,0.15); border-color: var(--accent); color: var(--accent); }
 
   .torch-btn {
     position: absolute;
@@ -254,21 +248,20 @@
     backdrop-filter: blur(4px);
   }
   .torch-btn.on {
-    background: rgba(243,156,18,0.85);
+    background: rgba(255,215,64,0.85);
     border-color: var(--yellow);
-    box-shadow: 0 0 16px rgba(243,156,18,0.5);
+    box-shadow: 0 0 16px rgba(255,215,64,0.6);
   }
 
   /* ── RESULT CARD ── */
   .result-card {
-    background: var(--surface);
+    background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 16px;
     margin-bottom: 12px;
     display: none;
     animation: slideUp 0.3s ease;
-    box-shadow: 0 4px 16px rgba(231,76,60,0.06);
   }
   .result-card.show { display: block; }
   @keyframes slideUp {
@@ -359,9 +352,9 @@
     font-size: 15px;
     font-weight: 700;
   }
-  .diff-ok   { background: rgba(39,174,96,0.10);  color: var(--green); border: 1px solid rgba(39,174,96,0.25); }
-  .diff-warn { background: rgba(243,156,18,0.10); color: var(--yellow); border: 1px solid rgba(243,156,18,0.25); }
-  .diff-err  { background: rgba(231,76,60,0.10);  color: var(--red);    border: 1px solid rgba(231,76,60,0.25); }
+  .diff-ok   { background: rgba(0,230,118,0.12);  color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
+  .diff-warn { background: rgba(255,215,64,0.12); color: var(--yellow); border: 1px solid rgba(255,215,64,0.3); }
+  .diff-err  { background: rgba(255,82,82,0.12);  color: var(--red);    border: 1px solid rgba(255,82,82,0.3); }
 
   /* ── BTNS ── */
   .btn {
@@ -378,8 +371,7 @@
   }
   .btn-primary {
     background: linear-gradient(135deg, var(--accent), var(--accent2));
-    color: #fff;
-    box-shadow: 0 4px 14px rgba(231, 76, 60, 0.3);
+    color: var(--bg);
   }
   .btn-primary:active { transform: scale(0.98); }
   .btn-ghost {
@@ -506,7 +498,6 @@
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 16px 14px;
-    box-shadow: 0 2px 8px rgba(231,76,60,0.04);
   }
   .stat-num {
     font-family: 'JetBrains Mono', monospace;
@@ -540,28 +531,23 @@
   /* ── TOAST ── */
   .toast {
     position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 76px);
+    bottom: 24px;
     left: 50%;
-    transform: translateX(-50%) translateY(-90px);
+    transform: translateX(-50%) translateY(80px);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 20px;
-    padding: 10px 18px;
+    padding: 10px 20px;
     font-size: 14px;
     font-weight: 600;
-    z-index: 9999;
-    transition: transform 0.25s ease, opacity 0.25s ease;
+    z-index: 999;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     white-space: nowrap;
-    max-width: calc(100vw - 32px);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-    opacity: 0;
   }
-  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-  .toast.ok   { color: var(--green); border-color: rgba(39,174,96,0.25); }
-  .toast.warn { color: var(--yellow); border-color: rgba(243,156,18,0.25); }
-  .toast.err  { color: var(--red); border-color: rgba(231,76,60,0.25); }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.ok   { color: var(--green); border-color: rgba(0,230,118,0.3); }
+  .toast.warn { color: var(--yellow); border-color: rgba(255,215,64,0.3); }
+  .toast.err  { color: var(--red); border-color: rgba(0,212,255,0.2); }
 
   .empty-state {
     text-align: center;
@@ -584,16 +570,7 @@
     padding: 32px 24px;
     gap: 0;
   }
-  .setup-logo {
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-  }
-  .setup-logo svg {
-    width: 110px;
-    height: 110px;
-  }
+  .setup-logo { font-size: 52px; margin-bottom: 12px; }
   .setup-title { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
   .setup-sub { font-size: 14px; color: var(--muted); margin-bottom: 32px; text-align: center; }
 
@@ -631,7 +608,7 @@
     font-family: 'Sarabun', sans-serif;
   }
   .zone-chip.selected {
-    background: rgba(231,76,60,0.10);
+    background: rgba(0,212,255,0.15);
     border-color: var(--accent);
     color: var(--accent);
     font-weight: 700;
@@ -639,8 +616,8 @@
 
   /* ── ZONE BANNER (topbar addition) ── */
   .zone-banner {
-    background: linear-gradient(135deg, rgba(231,76,60,0.08), rgba(192,57,43,0.08));
-    border-bottom: 1px solid rgba(231,76,60,0.15);
+    background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(0,153,204,0.1));
+    border-bottom: 1px solid rgba(0,212,255,0.15);
     padding: 8px 20px;
     display: flex;
     align-items: center;
@@ -692,670 +669,13 @@
     border-radius: 20px;
     transition: width 0.3s;
   }
-
-/* ─────────────────────────────────────────
-   MOBILE APP REDESIGN PATCH
-   ปรับหน้าตาให้ใกล้เคียงภาพตัวอย่าง: mobile app, card, bottom nav
-   ───────────────────────────────────────── */
-
-:root {
-  --bg: #fff7f1;
-  --bg2: #fffdfb;
-  --surface: rgba(255,255,255,.92);
-  --surface2: #fff2ed;
-  --border: #f1dfd4;
-  --accent: #ef3f36;
-  --accent2: #c9302a;
-  --accent3: #ff7b66;
-  --accent-soft: #ffe5de;
-  --text: #2b1913;
-  --muted: #9b7f72;
-  --shadow-soft: 0 12px 34px rgba(196, 66, 48, .10);
-  --shadow-card: 0 8px 24px rgba(90, 47, 32, .075);
-  --phone-w: 430px;
-}
-
-html {
-  background: #f1e7df;
-}
-
-body {
-  min-height: 100dvh;
-  background:
-    radial-gradient(circle at 20% 10%, rgba(255, 231, 219, .95) 0, transparent 30%),
-    radial-gradient(circle at 85% 22%, rgba(255, 220, 205, .72) 0, transparent 28%),
-    linear-gradient(135deg, #fffaf6 0%, #fff3eb 44%, #fffaf6 100%);
-  color: var(--text);
-}
-
-/* desktop ให้เห็นเป็นกรอบมือถือกลางจอ */
-.topbar,
-.zone-banner,
-#tabs-and-pages {
-  max-width: var(--phone-w);
-  margin-left: auto;
-  margin-right: auto;
-}
-
-@media (min-width: 700px) {
-  body {
-    padding: 18px 0;
-  }
-
-  .topbar {
-    margin-top: 0;
-    border-radius: 34px 34px 0 0;
-    border-left: 1px solid rgba(241, 223, 212, .75);
-    border-right: 1px solid rgba(241, 223, 212, .75);
-  }
-
-  .zone-banner,
-  #tabs-and-pages {
-    border-left: 1px solid rgba(241, 223, 212, .75);
-    border-right: 1px solid rgba(241, 223, 212, .75);
-  }
-
-  #tabs-and-pages {
-    min-height: calc(100dvh - 132px);
-    border-radius: 0 0 34px 34px;
-    overflow: hidden;
-    box-shadow: 0 24px 80px rgba(66, 28, 18, .18);
-    background: rgba(255, 247, 241, .92);
-  }
-}
-
-/* setup หน้าแรกเป็นมือถือ ไม่ยืดเต็มจอคอม */
-.setup-screen {
-  left: 50% !important;
-  right: auto !important;
-  top: 0 !important;
-  bottom: auto !important;
-  transform: translateX(-50%);
-  width: min(100vw, var(--phone-w)) !important;
-  min-height: 100dvh;
-  max-height: 100dvh;
-  overflow-y: auto;
-  padding: 42px 30px 28px !important;
-  background:
-    radial-gradient(circle at 12% 8%, rgba(255,255,255,.92), transparent 22%),
-    radial-gradient(circle at 88% 3%, rgba(255,224,209,.75), transparent 25%),
-    linear-gradient(150deg, #fffaf7 0%, #fff2e9 52%, #fffaf7 100%) !important;
-}
-
-.setup-screen::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(125deg, transparent 0 18%, rgba(255,255,255,.58) 18.3% 19.4%, transparent 19.7%),
-    linear-gradient(35deg, transparent 0 70%, rgba(255,224,209,.44) 70.3% 71.5%, transparent 71.8%);
-  pointer-events: none;
-}
-
-.setup-screen > * {
-  position: relative;
-  z-index: 1;
-}
-
-@media (min-width: 700px) {
-  .setup-screen {
-    top: 18px !important;
-    min-height: calc(100dvh - 36px);
-    max-height: calc(100dvh - 36px);
-    border-radius: 38px;
-    box-shadow: 0 24px 80px rgba(66, 28, 18, .18);
-    border: 1px solid rgba(241, 223, 212, .8);
-  }
-}
-
-.setup-logo {
-  margin-top: 8px;
-  margin-bottom: 10px !important;
-}
-
-.setup-logo svg {
-  width: 156px !important;
-  height: 156px !important;
-  filter: drop-shadow(0 18px 32px rgba(231,76,60,.30)) !important;
-}
-
-.setup-title {
-  font-size: 36px !important;
-  line-height: 1.05;
-  color: #d62f28 !important;
-  font-weight: 800 !important;
-  text-shadow: 0 1px 0 rgba(255,255,255,.9);
-}
-
-.setup-sub {
-  font-size: 16px !important;
-  line-height: 1.48;
-  margin-bottom: 28px !important;
-}
-
-.setup-label {
-  color: #8d6f62 !important;
-  letter-spacing: 0 !important;
-  text-transform: none !important;
-  font-size: 13px !important;
-}
-
-.setup-input,
-#search-input,
-#product-search,
-#manual-code,
-#filter-status,
-#expiry-sort,
-#expiry-days,
-.unknown-input,
-.manual-area,
-.manual-area textarea {
-  background: rgba(255,255,255,.90) !important;
-  border-color: rgba(231, 76, 60, .16) !important;
-  border-radius: 18px !important;
-  box-shadow: 0 8px 22px rgba(88, 39, 23, .045);
-}
-
-.setup-input {
-  min-height: 58px;
-  font-size: 16px !important;
-}
-
-.zone-chips {
-  gap: 10px !important;
-}
-
-.zone-chip {
-  border-radius: 999px !important;
-  background: rgba(255,255,255,.86) !important;
-  box-shadow: 0 7px 18px rgba(88, 39, 23, .05);
-  padding: 9px 18px !important;
-  color: #8b6e62 !important;
-}
-
-.zone-chip.selected {
-  background: #fff3ef !important;
-  border-color: #ef3f36 !important;
-  color: #ef3f36 !important;
-  box-shadow: 0 10px 22px rgba(239,63,54,.14);
-}
-
-/* ปุ่มหลักแบบแดงนูน */
-.btn-primary {
-  min-height: 56px;
-  border-radius: 20px !important;
-  background: linear-gradient(180deg, #ff5148 0%, #ec2d28 60%, #c92521 100%) !important;
-  box-shadow: 0 14px 28px rgba(239,63,54,.26), inset 0 1px 0 rgba(255,255,255,.28) !important;
-}
-
-.btn-primary:active {
-  transform: translateY(1px) scale(.99) !important;
-}
-
-/* top bar เหมือนแอป */
-.topbar {
-  min-height: 58px;
-  padding: 12px 18px !important;
-  background: rgba(255,255,255,.95) !important;
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid rgba(241, 223, 212, .82) !important;
-  box-shadow: 0 6px 18px rgba(88, 39, 23, .04) !important;
-}
-
-.topbar::before {
-  content: "☰";
-  color: #8b6e62;
-  font-size: 24px;
-  margin-right: 12px;
-  line-height: 1;
-}
-
-.topbar-title {
-  font-size: 20px !important;
-  color: #b5211d !important;
-  font-weight: 800 !important;
-  letter-spacing: 0 !important;
-}
-
-.topbar-sub {
-  display: none;
-}
-
-#firebase-status {
-  position: relative;
-  color: #2faa5f !important;
-  font-weight: 700;
-  font-size: 12px !important;
-}
-
-.badge {
-  background: #fff4f1 !important;
-  color: #e83a34 !important;
-  border: 1px solid rgba(239,63,54,.18);
-  border-radius: 999px !important;
-  padding: 6px 10px !important;
-  box-shadow: none !important;
-}
-
-.zone-banner {
-  padding: 12px 20px !important;
-  background: rgba(255,255,255,.94) !important;
-  border-bottom: 1px solid rgba(241, 223, 212, .82) !important;
-}
-
-.zone-banner-label {
-  font-size: 12px !important;
-  color: #9a8277 !important;
-}
-
-.zone-banner-value {
-  font-size: 15px !important;
-  color: var(--text) !important;
-  font-weight: 800 !important;
-}
-
-/* bottom navigation แทน tabs ด้านบน */
-.tabs {
-  position: fixed !important;
-  top: auto !important;
-  left: 50% !important;
-  bottom: 0 !important;
-  width: min(100vw, var(--phone-w)) !important;
-  transform: translateX(-50%);
-  height: 76px;
-  padding: 8px 8px 10px !important;
-  background: rgba(255,255,255,.95) !important;
-  backdrop-filter: blur(18px);
-  border-top: 1px solid rgba(241, 223, 212, .82) !important;
-  border-bottom: none !important;
-  box-shadow: 0 -14px 34px rgba(60, 27, 18, .08);
-  z-index: 150 !important;
-  display: flex !important;
-  align-items: center;
-  justify-content: space-around;
-}
-
-@media (min-width: 700px) {
-  .tabs {
-    bottom: 18px !important;
-    border-radius: 0 0 34px 34px;
-  }
-}
-
-/* reorder ให้ปุ่มยิง QR อยู่ตรงกลางเหมือนภาพ */
-.tab:nth-child(3) { order: 1; }
-.tab:nth-child(2) { order: 2; }
-.tab:nth-child(1) { order: 3; }
-.tab:nth-child(4) { order: 4; }
-.tab:nth-child(6) { order: 5; }
-.tab:nth-child(5) { order: 6; }
-
-.tab {
-  border-bottom: none !important;
-  padding: 4px 2px !important;
-  height: 58px;
-  color: #9b8177 !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  border-radius: 18px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  white-space: nowrap;
-}
-
-.tab.active {
-  color: #ef3f36 !important;
-  background: #fff4f1;
-}
-
-.tab:nth-child(1) {
-  position: relative;
-  width: 70px;
-  min-width: 70px;
-  height: 70px;
-  margin-top: -28px;
-  border-radius: 50% !important;
-  color: white !important;
-  background: linear-gradient(180deg, #ff5148 0%, #ec2d28 60%, #c92521 100%) !important;
-  box-shadow: 0 14px 28px rgba(239,63,54,.30), inset 0 1px 0 rgba(255,255,255,.28);
-  font-size: 10px !important;
-}
-
-.tab:nth-child(1).active {
-  color: white !important;
-}
-
-#tabs-and-pages {
-  padding-bottom: 92px;
-}
-
-.page {
-  padding: 16px 18px 96px !important;
-  animation: appFade .18s ease;
-}
-
-@keyframes appFade {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* card / section style */
-.scanner-wrapper,
-.result-card,
-.upload-zone,
-.table-wrap,
-.stat-card,
-.export-btn,
-.merge-drop,
-.merge-file-item,
-.empty-state {
-  border-radius: 22px !important;
-  border-color: rgba(241, 223, 212, .78) !important;
-  background: rgba(255,255,255,.92) !important;
-  box-shadow: var(--shadow-card) !important;
-}
-
-.scanner-wrapper {
-  overflow: hidden;
-}
-
-.cam-start {
-  min-height: 230px;
-  background:
-    radial-gradient(circle at 50% 20%, rgba(255, 232, 220, .9), transparent 40%),
-    linear-gradient(160deg, #fffaf7, #fff1e9);
-}
-
-.cam-icon {
-  width: 82px !important;
-  height: 82px !important;
-  border-radius: 26px !important;
-  background: #fff4f1 !important;
-  border-color: rgba(239,63,54,.18) !important;
-  color: #ef3f36;
-  box-shadow: 0 12px 24px rgba(239,63,54,.12);
-}
-
-.cam-text {
-  font-size: 16px !important;
-  color: var(--text) !important;
-  font-weight: 800 !important;
-}
-
-.cam-sub {
-  color: #9b8177 !important;
-}
-
-#reader {
-  min-height: 360px;
-  background: #1c1918;
-}
-
-.scan-frame {
-  width: 238px !important;
-  height: 238px !important;
-}
-
-.scan-frame::before, .scan-frame::after,
-.scan-frame span::before, .scan-frame span::after {
-  width: 34px !important;
-  height: 34px !important;
-  border-color: #ff342e !important;
-  border-width: 4px !important;
-}
-
-.scan-line {
-  background: linear-gradient(90deg, transparent, #ff342e, transparent) !important;
-  height: 3px !important;
-  filter: drop-shadow(0 0 10px rgba(255,52,46,.8));
-}
-
-/* result card แบบ bottom sheet */
-.result-card {
-  padding: 18px !important;
-}
-
-.result-code {
-  color: #8f817a !important;
-  font-size: 13px !important;
-}
-
-.result-name {
-  font-size: 18px !important;
-  line-height: 1.35;
-}
-
-.meta-pill {
-  background: #fff7f3 !important;
-  border-color: rgba(241, 223, 212, .95) !important;
-  border-radius: 999px !important;
-}
-
-.qty-control {
-  border-radius: 20px !important;
-  background: #fff4f1 !important;
-  border: none !important;
-}
-
-.qty-btn {
-  color: #ef3f36 !important;
-  font-weight: 700 !important;
-}
-
-.diff-badge {
-  border-radius: 999px !important;
-}
-
-/* summary card */
-.stat-grid {
-  gap: 12px !important;
-}
-
-.stat-card {
-  min-height: 136px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-
-.stat-card::before {
-  display: block;
-  margin: 0 auto 10px;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  line-height: 52px;
-  font-size: 24px;
-  background: #fff0eb;
-}
-
-.stat-card:nth-child(1)::before { content: "📋"; color: #ef3f36; }
-.stat-card:nth-child(2)::before { content: "✅"; background: #e8f7ef; }
-.stat-card:nth-child(3)::before { content: "☑️"; background: #e8f7ef; }
-.stat-card:nth-child(4)::before { content: "✕"; background: #fff0eb; }
-
-.stat-num {
-  font-size: 34px !important;
-  margin-bottom: 8px !important;
-}
-
-.stat-label {
-  font-size: 13px !important;
-  color: #8e7468 !important;
-}
-
-.export-btn {
-  min-height: 72px;
-  padding: 15px 16px !important;
-  background: rgba(255,255,255,.94) !important;
-}
-
-.export-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
-  display: grid;
-  place-items: center;
-  background: #fff0eb;
-  color: #ef3f36;
-}
-
-.export-name {
-  font-size: 15px !important;
-}
-
-.export-desc {
-  font-size: 12px !important;
-  margin-top: 2px;
-}
-
-/* list / table ให้ดูเป็นการ์ดนุ่มขึ้น */
-.table-wrap {
-  overflow: hidden;
-}
-
-.table-wrap th {
-  background: #fff5f0 !important;
-  color: #9b8177 !important;
-  border-bottom-color: rgba(241,223,212,.9) !important;
-}
-
-.table-wrap td {
-  border-bottom-color: rgba(241,223,212,.55) !important;
-}
-
-.code-cell {
-  color: #8b7a72 !important;
-}
-
-.d-ok { color: var(--green) !important; }
-.d-warn { color: #f39c12 !important; }
-.d-err { color: #ef3f36 !important; }
-
-/* import */
-.upload-zone {
-  padding: 22px 20px !important;
-  text-align: left !important;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.upload-icon {
-  width: 52px;
-  height: 52px;
-  border-radius: 18px;
-  margin: 0 !important;
-  background: #fff0eb;
-  color: #ef3f36;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-}
-
-.section-label {
-  color: #5b3b31 !important;
-  text-transform: none !important;
-  letter-spacing: 0 !important;
-  font-size: 15px !important;
-  margin-top: 22px !important;
-}
-
-/* toast ย้ายขึ้นด้านบน ไม่บังปุ่มยิง QR / bottom navigation */
-.toast {
-  top: 86px !important;
-  bottom: auto !important;
-  background: rgba(255,255,255,.96) !important;
-  box-shadow: var(--shadow-card);
-  max-width: calc(min(100vw, var(--phone-w)) - 32px);
-  text-align: center;
-  pointer-events: none;
-}
-.toast.show {
-  transform: translateX(-50%) translateY(0) !important;
-}
-@media (min-width: 700px) {
-  .toast { top: 104px !important; }
-}
-
-/* บนมือถือเต็มจอ ไม่ต้องมีมุมมนเกิน */
-@media (max-width: 699px) {
-  body {
-    padding: 0;
-  }
-
-  .topbar,
-  .zone-banner,
-  #tabs-and-pages {
-    max-width: none;
-  }
-
-  .setup-screen {
-    width: 100vw !important;
-    border-radius: 0;
-  }
-}
-
 </style>
 </head>
 <body>
 
 <!-- SETUP SCREEN -->
 <div class="setup-screen" id="setup-screen">
-  <div class="setup-logo">
-    <svg width="110" height="110" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 12px 28px rgba(231,76,60,0.35))">
-      <defs>
-        <linearGradient id="boxLeftFace" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#ff7a6c"/>
-          <stop offset="100%" stop-color="#e74c3c"/>
-        </linearGradient>
-        <linearGradient id="boxRightFace" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#d83b2c"/>
-          <stop offset="100%" stop-color="#a82820"/>
-        </linearGradient>
-        <linearGradient id="boxTopLeft" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#ffc1b3"/>
-          <stop offset="100%" stop-color="#f5a08e"/>
-        </linearGradient>
-        <linearGradient id="boxTopRight" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#f5a08e"/>
-          <stop offset="100%" stop-color="#dd826e"/>
-        </linearGradient>
-        <linearGradient id="boxTape" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#fff8e7"/>
-          <stop offset="100%" stop-color="#f5e8c8"/>
-        </linearGradient>
-      </defs>
-
-      <!-- Top faces (lid) -->
-      <path d="M 22 38 L 60 22 L 60 44 L 22 60 Z" fill="url(#boxTopLeft)"/>
-      <path d="M 60 22 L 98 38 L 98 60 L 60 44 Z" fill="url(#boxTopRight)"/>
-
-      <!-- Front faces -->
-      <path d="M 22 60 L 22 92 L 60 108 L 60 76 Z" fill="url(#boxLeftFace)"/>
-      <path d="M 98 60 L 98 92 L 60 108 L 60 76 Z" fill="url(#boxRightFace)"/>
-
-      <!-- Top tape (horizontal beige band on top - the packing tape) -->
-      <path d="M 36 31 L 74 47 L 74 51 L 36 35 Z" fill="url(#boxTape)" opacity="0.85"/>
-      <path d="M 60 41 L 74 47 L 74 51 L 60 45 Z" fill="#e8d4a8" opacity="0.6"/>
-
-      <!-- Center seam (top opening line) -->
-      <line x1="60" y1="22" x2="60" y2="44" stroke="#8a1f15" stroke-width="1.5" opacity="0.45"/>
-
-      <!-- Front center vertical edge -->
-      <line x1="60" y1="76" x2="60" y2="108" stroke="#7d1f17" stroke-width="1.5" opacity="0.5"/>
-
-      <!-- Highlight on top-left edge for 3D feel -->
-      <path d="M 22 60 L 60 44 L 60 48 L 22 64 Z" fill="#fff" opacity="0.22"/>
-
-      <!-- Subtle shadow on right face bottom -->
-      <path d="M 60 76 L 98 60 L 98 92 L 60 108 Z" fill="#000" opacity="0.05"/>
-    </svg>
-  </div>
+  <div class="setup-logo">📦</div>
   <div class="setup-title">นับสต๊อก</div>
   <div class="setup-sub">กรอกข้อมูลก่อนเริ่มนับ<br>แต่ละคนเลือกโซนของตัวเอง</div>
 
@@ -1383,11 +703,11 @@ body {
 <!-- TOP BAR -->
 <div class="topbar" id="main-app" style="display:none">
   <div>
-    <div class="topbar-title">นับสต๊อก</div>
+    <div class="topbar-title">📦 นับสต๊อก</div>
     <div class="topbar-sub" id="topbar-sub-text">Handheld Scanner</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
-    <span id="firebase-status" style="font-size:11px;color:var(--muted)">● ซิงค์แล้ว</span>
+    <span id="firebase-status" style="font-size:11px;color:var(--muted)">⏳ กำลังเชื่อม...</span>
     <div class="badge" id="count-badge">0 / 439</div>
   </div>
 </div>
@@ -1405,12 +725,12 @@ body {
 
 <!-- TABS -->
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('scan')">▦<span>ยิง QR</span></div>
-  <div class="tab" onclick="switchTab('import')">↥<span>นำเข้า</span></div>
-  <div class="tab" onclick="switchTab('list')">▤<span>รายการ</span></div>
-  <div class="tab" onclick="switchTab('summary')">▥<span>สรุป</span></div>
-  <div class="tab" onclick="switchTab('expiry')">⚠<span>หมดอายุ</span></div>
-  <div class="tab" onclick="switchTab('merge')">↔<span>รวม</span></div>
+  <div class="tab active" onclick="switchTab('scan')">🎯 ยิง QR</div>
+  <div class="tab" onclick="switchTab('import')">📂 นำเข้า</div>
+  <div class="tab" onclick="switchTab('list')">📋 รายการ</div>
+  <div class="tab" onclick="switchTab('summary')">📊 สรุป</div>
+  <div class="tab" onclick="switchTab('expiry')">⚠️ หมดอายุ</div>
+  <div class="tab" onclick="switchTab('merge')">🔗 รวม</div>
 </div>
 
 <!-- ═══ SCAN PAGE ═══ -->
@@ -1462,7 +782,7 @@ body {
     </div>
 
     <!-- แจ้งเตือนเมื่อสินค้านี้ถูกนับไปแล้ว -->
-    <div id="r-already-counted" style="display:none;background:rgba(243,156,18,0.08);border:1px solid rgba(243,156,18,0.3);border-radius:12px;padding:10px 14px;margin-bottom:12px">
+    <div id="r-already-counted" style="display:none;background:rgba(255,215,64,0.08);border:1px solid rgba(255,215,64,0.4);border-radius:12px;padding:10px 14px;margin-bottom:12px">
       <div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:4px">⚠️ รายการนี้นับไปแล้ว!</div>
       <div id="r-already-detail" style="font-size:12px;color:var(--muted)">—</div>
       <div style="font-size:11px;color:var(--muted);margin-top:4px">กด "บันทึก" เพื่อทับยอดเดิม หรือ "ยกเลิก" เพื่อออก</div>
@@ -1534,7 +854,7 @@ body {
           🗑️ ล้าง
         </button>
         <button type="button" onclick="saveNoteFromModal()"
-          style="flex:2;background:var(--accent);border:none;border-radius:10px;padding:10px;color:#fff;font-weight:700;font-family:'Sarabun',sans-serif;font-size:14px;cursor:pointer">
+          style="flex:2;background:var(--accent);border:none;border-radius:10px;padding:10px;color:#000;font-weight:700;font-family:'Sarabun',sans-serif;font-size:14px;cursor:pointer">
           ✅ บันทึกหมายเหตุ
         </button>
       </div>
@@ -1570,7 +890,7 @@ body {
 
 <!-- ═══ IMPORT PAGE ═══ -->
 <div class="page" id="page-import">
-  <div style="background:rgba(39,174,96,0.08);border:1px solid rgba(39,174,96,0.2);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+  <div style="background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
     <div style="font-size:24px">✅</div>
     <div>
       <div style="font-size:14px;font-weight:700;color:var(--green)">โหลดข้อมูลสินค้าแล้ว</div>
@@ -1953,7 +1273,6 @@ function save() {
 // TABS
 // ─────────────────────────────────────────
 function switchTab(tab) {
-  hideToast(); // เปลี่ยนหน้าแล้วให้ข้อความแจ้งเตือนหายทันที
   const tabs = ['scan','import','list','summary','expiry','merge'];
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -2054,10 +1373,10 @@ function renderExpiry() {
   const other    = items.filter(i => i.daysLeft > i.threshold + 60).length;
 
   document.getElementById('expiry-stats').innerHTML = [
-    expired  ? `<div style="background:rgba(231,76,60,0.10);border:1px solid rgba(231,76,60,0.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--red)">🔴 หมดอายุแล้ว ${expired}</div>` : '',
-    critical ? `<div style="background:rgba(231,76,60,0.06);border:1px solid rgba(231,76,60,0.25);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--red)">🔴 ใกล้หมดอายุ: ${critical}</div>` : '',
-    warn     ? `<div style="background:rgba(243,156,18,0.08);border:1px solid rgba(243,156,18,0.25);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--yellow)">🟡 เฝ้าระวัง: ${warn}</div>` : '',
-    other    ? `<div style="background:rgba(231,76,60,0.06);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted)">อื่นๆ: ${other}</div>` : '',
+    expired  ? `<div style="background:rgba(0,212,255,0.15);border:1px solid rgba(0,212,255,0.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--red)">🔴 หมดอายุแล้ว ${expired}</div>` : '',
+    critical ? `<div style="background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--red)">🔴 ใกล้หมดอายุ: ${critical}</div>` : '',
+    warn     ? `<div style="background:rgba(255,215,64,0.08);border:1px solid rgba(255,215,64,0.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--yellow)">🟡 เฝ้าระวัง: ${warn}</div>` : '',
+    other    ? `<div style="background:rgba(0,212,255,0.08);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted)">อื่นๆ: ${other}</div>` : '',
   ].join('');
 
   if (!items.length) {
@@ -2092,7 +1411,7 @@ function renderExpiry() {
             <td style="font-size:12px">
               <div style="font-weight:700;color:var(--text)">${p.name}</div>
               <div style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace">${p.code}</div>
-              ${batchLabel ? `<div style="font-size:10px;color:#e74c3c;margin-top:2px">📦 ${batchLabel}</div>` : ''}
+              ${batchLabel ? `<div style="font-size:10px;color:#00d4ff;margin-top:2px">📦 ${batchLabel}</div>` : ''}
             </td>
             <td style="font-size:11px;color:var(--muted);white-space:nowrap">${lbl.date}</td>
             <td class="counted-cell" style="text-align:right">${p.batchQty}</td>
@@ -2412,13 +1731,8 @@ function lookupCode(code) {
   document.getElementById('result-card').classList.add('show');
   document.getElementById('manual-fallback').style.display = 'none';
 
-  // แสดงข้อความพบสินค้าแบบชั่วคราวเท่านั้น: 2 วินาทีแล้วหาย
-  // และถ้าผู้ใช้กดไปหน้าอื่น switchTab() จะเรียก hideToast() ให้หายทันที
-  if (!prod) {
-    showToast('⚠️ รหัสนี้ไม่มีในระบบ', 'warn', 2000);
-  } else {
-    showToast('✅ พบสินค้า: ' + currentProduct.name, 'ok', 2000);
-  }
+  if (prod) showToast('✅ พบสินค้า: ' + prod.name, 'ok');
+  else      showToast('⚠️ รหัสนี้ไม่มีในระบบ', 'warn');
 }
 
 function updateDiff() {
@@ -2718,43 +2032,32 @@ function renderList() {
 
           // แสดงปุ่ม ▼ กับทุกรายการที่มี batch (แม้มี 1 lot ก็แสดง)
           const expandIcon = hasBatches
-            ? `<span style="display:inline-block;color:#e74c3c;font-size:10px;margin-left:4px;cursor:pointer" onclick="event.stopPropagation();toggleBatch('${safeId}')">▼ ดู ${batches.length} lot${batches.length>1?'s':''}</span>`
+            ? `<span style="display:inline-block;color:#00d4ff;font-size:10px;margin-left:4px;cursor:pointer" onclick="event.stopPropagation();toggleBatch('${safeId}')">▼ ${batches.length} lot${batches.length>1?'s':''}</span>`
             : '';
 
-          // สร้างแถว batch ที่ซ่อนไว้ - แสดงจำนวนแยกแต่ละ Lot ให้ชัดบนมือถือ
+          // สร้างแถว batch ที่ซ่อนไว้ - ทำกับทุกรายการที่มี batch
           let batchRows = '';
           if (hasBatches) {
             const sortedBatches = [...batches].sort((a, b) => a.exp - b.exp);
-            const totalLotQty = sortedBatches.reduce((sum, b) => sum + (parseInt(b.qty) || 0), 0);
-            batchRows = `<tr id="${safeId}" style="display:none;background:rgba(231,76,60,0.04)">
-              <td colspan="5" style="padding:10px 12px">
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
-                  <div style="font-size:12px;color:var(--muted);font-weight:700">📦 รายละเอียดแต่ละ Lot</div>
-                  <div style="font-size:12px;color:var(--accent);font-weight:800;background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.18);border-radius:999px;padding:3px 8px;white-space:nowrap">รวม ${totalLotQty}</div>
-                </div>
-                <div style="display:flex;flex-direction:column;gap:6px">
-                  ${sortedBatches.map((b, i) => {
-                    const lotQty = parseInt(b.qty) || 0;
-                    return `
-                      <div style="display:grid;grid-template-columns:54px 1fr 1fr 64px;align-items:center;gap:6px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:8px 10px;font-size:11px">
-                        <div style="font-weight:800;color:var(--text)">Lot ${i+1}</div>
-                        <div>
-                          <div style="color:var(--muted);font-size:10px">รับเข้า</div>
-                          <div style="color:var(--text);font-weight:600">${b.dateIn ? fmtLot(b.dateIn) : '—'}</div>
-                        </div>
-                        <div>
-                          <div style="color:var(--muted);font-size:10px">หมดอายุ</div>
-                          <div style="color:var(--text);font-weight:600">${fmtExp(b.exp)}</div>
-                        </div>
-                        <div style="text-align:right">
-                          <div style="color:var(--muted);font-size:10px">จำนวน</div>
-                          <div style="color:var(--accent);font-size:16px;font-weight:900;line-height:1">${lotQty}</div>
-                        </div>
-                      </div>
-                    `;
-                  }).join('')}
-                </div>
-                ${sortedBatches.length > 1 ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:right">${sortedBatches.map((b,i)=>`Lot ${i+1}: ${parseInt(b.qty)||0}`).join(' + ')} = <b style="color:var(--accent)">${totalLotQty}</b></div>` : ''}
+            batchRows = `<tr id="${safeId}" style="display:none;background:rgba(0,212,255,0.04)">
+              <td colspan="5" style="padding:6px 12px">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">📦 รายละเอียดแต่ละ Lot:</div>
+                <table style="width:100%;font-size:11px">
+                  <tr style="color:var(--muted)">
+                    <th style="text-align:left;padding:4px">Lot</th>
+                    <th style="text-align:left;padding:4px">รับเข้า</th>
+                    <th style="text-align:left;padding:4px">หมดอายุ</th>
+                    <th style="text-align:right;padding:4px">จำนวน</th>
+                  </tr>
+                  ${sortedBatches.map((b, i) => `
+                    <tr style="color:var(--text)">
+                      <td style="padding:4px">Lot ${i+1}</td>
+                      <td style="padding:4px;color:var(--muted)">${b.dateIn ? fmtLot(b.dateIn) : '—'}</td>
+                      <td style="padding:4px;color:var(--muted)">${fmtExp(b.exp)}</td>
+                      <td style="padding:4px;text-align:right;font-weight:700;color:#00d4ff">${b.qty || 0}</td>
+                    </tr>
+                  `).join('')}
+                </table>
               </td>
             </tr>`;
           }
@@ -3108,30 +2411,14 @@ function updateBadge() {
   document.getElementById('count-badge').textContent = done + ' / ' + total;
 }
 
-let toastShowTimer;
-let toastHideTimer;
-function hideToast() {
+let toastTimer;
+function showToast(msg, type='ok') {
   const el = document.getElementById('toast');
-  if (!el) return;
-  clearTimeout(toastShowTimer);
-  clearTimeout(toastHideTimer);
-  el.classList.remove('show');
-}
-function showToast(msg, type='ok', duration=2000) {
-  const el = document.getElementById('toast');
-  if (!el) return;
-
-  clearTimeout(toastShowTimer);
-  clearTimeout(toastHideTimer);
-
   el.textContent = msg;
   el.className = 'toast ' + type;
-
-  // บังคับให้ browser รีเซ็ต animation ก่อนโชว์ข้อความใหม่
-  void el.offsetWidth;
-
-  toastShowTimer = setTimeout(() => el.classList.add('show'), 10);
-  toastHideTimer = setTimeout(() => el.classList.remove('show'), duration);
+  clearTimeout(toastTimer);
+  setTimeout(() => el.classList.add('show'), 10);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
 }
 
 // Init
