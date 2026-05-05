@@ -811,6 +811,23 @@
 
     <div id="diff-display" style="margin-bottom:14px"></div>
 
+    <!-- ช่องหมายเหตุ -->
+    <div style="margin-bottom:14px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">📝 หมายเหตุ (ถ้ามีปัญหา)</div>
+      <select id="note-type" onchange="onNoteTypeChange()"
+        style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:13px;outline:none;margin-bottom:8px;cursor:pointer">
+        <option value="">— ไม่มีปัญหา —</option>
+        <option value="damaged">📦 บรรจุภัณฑ์เสียหาย</option>
+        <option value="wet">💧 สินค้าเปียก/ชื้น</option>
+        <option value="missing">🔍 สินค้าหายไป</option>
+        <option value="expired">⛔ หมดอายุแล้ว</option>
+        <option value="mixed_lot">🔀 Lot ผสมปนกัน</option>
+        <option value="other">❓ อื่นๆ</option>
+      </select>
+      <textarea id="note-text" rows="2" placeholder="พิมพ์รายละเอียดเพิ่มเติม (ถ้ามี)..."
+        style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:13px;outline:none;resize:vertical;min-height:50px"></textarea>
+    </div>
+
     <button class="btn btn-primary" onclick="saveCount()">✅ บันทึกยอดนับ</button>
     <button class="btn btn-ghost" onclick="cancelScan()">← ยกเลิก / ย้อนกลับ</button>
   </div>
@@ -1077,13 +1094,15 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 // sync counts ขึ้น Firebase
-function syncToFirebase(code, qty, productName, zone, user) {
+function syncToFirebase(code, qty, productName, zone, user, noteType, noteText) {
   const ref = db.ref('counts/' + code.replace(/[.#$/[\]]/g, '_'));
   ref.set({
     code, qty,
     name: productName || '',
     zone: zone || currentZone,
     user: user || currentUser,
+    noteType: noteType || '',
+    noteText: noteText || '',
     updatedAt: Date.now()
   });
 }
@@ -1096,9 +1115,14 @@ function startFirebaseListener() {
     Object.values(data).forEach(item => {
       if (item && item.code) {
         counts[item.code] = item.qty;
+        // sync notes ด้วย
+        if (item.noteType || item.noteText) {
+          notes[item.code] = { type: item.noteType || '', text: item.noteText || '' };
+        }
       }
     });
     try { localStorage.setItem('stock_counts', JSON.stringify(counts)); } catch(e) {}
+    try { localStorage.setItem('stock_notes',  JSON.stringify(notes));  } catch(e) {}
     updateBadge();
     // อัปเดต UI ถ้ากำลังดูรายการอยู่
     const listPage = document.getElementById('page-list');
@@ -1119,6 +1143,7 @@ function updateOnlineStatus() {
 
 let products = [];
 let counts   = {};
+let notes    = {};  // {code: {type: '', text: ''}}
 let scanning = false;
 let torchOn  = false;
 let currentTrack = null;
@@ -1131,6 +1156,7 @@ let mergeFiles = [];
 let mergedData = [];
 let unknownCounts = {};
 try { const u2 = localStorage.getItem('stock_unknown'); if(u2) unknownCounts = JSON.parse(u2); } catch(e) {}
+try { const n2 = localStorage.getItem('stock_notes'); if(n2) notes = JSON.parse(n2); } catch(e) {}
 
 // Load from localStorage
 try {
@@ -1632,6 +1658,13 @@ function lookupCode(code) {
   document.getElementById('r-custom-name').value = '';
   document.getElementById('r-already-counted').style.display = 'none';
 
+  // โหลดหมายเหตุเก่าของรายการนี้ (ถ้ามี)
+  const existingNote = notes[lookupKey];
+  const noteTypeEl = document.getElementById('note-type');
+  const noteTextEl = document.getElementById('note-text');
+  if (noteTypeEl) noteTypeEl.value = existingNote?.type || '';
+  if (noteTextEl) noteTextEl.value = existingNote?.text || '';
+
   const prevCount = counts[lookupKey];
   // ถ้าเคยนับแล้วใช้ค่าเดิม, ถ้ายังไม่เคยนับใช้ systemQty (ยอดในคลัง)
   // ถ้าเป็น unknown หรือไม่มี systemQty ให้เริ่มที่ 0
@@ -1695,26 +1728,42 @@ function adjustQty(delta) {
 function saveCount() {
   if (!currentProduct) return;
   const qty = parseInt(document.getElementById('qty-input').value) || 0;
+  const noteType = document.getElementById('note-type')?.value || '';
+  const noteText = document.getElementById('note-text')?.value?.trim() || '';
+
+  // เก็บ notes ใน local memory + storage
+  const code = currentProduct.code;
+  if (noteType || noteText) {
+    notes[code] = { type: noteType, text: noteText };
+  } else {
+    delete notes[code];
+  }
+  try { localStorage.setItem('stock_notes', JSON.stringify(notes)); } catch(e) {}
 
   if (currentProduct.unknown) {
     const name = document.getElementById('r-custom-name').value.trim() || '(ไม่ระบุชื่อ)';
     currentProduct.name = name;
-    unknownCounts[currentProduct.code] = { code: currentProduct.code, name, qty };
+    unknownCounts[code] = { code, name, qty };
     try { localStorage.setItem('stock_unknown', JSON.stringify(unknownCounts)); } catch(e) {}
     // sync unknown ขึ้น Firebase ด้วย
-    syncToFirebase(currentProduct.code, qty, name, currentZone, currentUser);
+    syncToFirebase(code, qty, name, currentZone, currentUser, noteType, noteText);
     showToast(`📝 บันทึก "${name}" ${qty} ชิ้น`, 'warn');
   } else {
-    counts[currentProduct.code] = qty;
+    counts[code] = qty;
     save();
     // sync ขึ้น Firebase real-time
-    syncToFirebase(currentProduct.code, qty, currentProduct.name, currentZone, currentUser);
+    syncToFirebase(code, qty, currentProduct.name, currentZone, currentUser, noteType, noteText);
     const diff = isNaN(parseInt(currentProduct.systemQty)) ? null : qty - parseInt(currentProduct.systemQty);
     if (diff === null) showToast('💾 บันทึกแล้ว', 'ok');
     else if (diff === 0) showToast('✅ ยอดตรง! บันทึกแล้ว', 'ok');
     else showToast(`⚠️ ต่าง ${diff > 0 ? '+' : ''}${diff} ชิ้น — บันทึกแล้ว`, 'warn');
   }
   cancelScan();
+}
+
+// Trigger เมื่อเปลี่ยนประเภทหมายเหตุ (no-op currently, ไว้เผื่อขยาย)
+function onNoteTypeChange() {
+  // อนาคตอาจจะเช็คว่าถ้าเลือก type แล้วต้องบังคับใส่ text ก็ได้
 }
 
 function cancelScan() {
@@ -1912,9 +1961,15 @@ function renderList() {
             </tr>`;
           }
 
+          // ดูว่ารายการนี้มีหมายเหตุไหม
+          const note = notes[p.code];
+          const noteIcon = note && (note.type || note.text)
+            ? `<span title="${note.type || ''}: ${(note.text || '').replace(/"/g, '&quot;')}" style="display:inline-block;color:#ff9533;font-size:11px;margin-left:4px">📝</span>`
+            : '';
+
           return `<tr onclick="editCount('${p.code}')" style="cursor:pointer">
             <td class="code-cell">${p.code}</td>
-            <td style="font-size:12px">${p.name || '—'}${expandIcon}</td>
+            <td style="font-size:12px">${p.name || '—'}${noteIcon}${expandIcon}</td>
             <td class="counted-cell" style="text-align:right">${isNaN(sys) ? '—' : sys}</td>
             <td class="counted-cell" style="text-align:right">${cnt !== undefined ? cnt : '<span style="color:var(--muted)">—</span>'}</td>
             <td class="diff-cell ${dc}" style="text-align:right">${diff !== null ? (diff > 0 ? '+' : '') + diff : '—'}</td>
@@ -2047,16 +2102,31 @@ function syncAllToFirebase() {
 }
 
 function exportCSV() {
-  let rows = [['รหัสสินค้า','ชื่อสินค้า','หมวดหมู่','ยอดระบบ','ยอดนับ','ผลต่าง','สถานะ','โซน','ผู้นับ']];
+  // Map note type → label
+  const noteTypeLabel = {
+    '': '',
+    'damaged': 'บรรจุภัณฑ์เสียหาย',
+    'wet': 'สินค้าเปียก/ชื้น',
+    'missing': 'สินค้าหายไป',
+    'expired': 'หมดอายุแล้ว',
+    'mixed_lot': 'Lot ผสมปนกัน',
+    'other': 'อื่นๆ',
+  };
+
+  let rows = [['รหัสสินค้า','ชื่อสินค้า','หมวดหมู่','ยอดระบบ','ยอดนับ','ผลต่าง','สถานะ','โซน','ผู้นับ','ประเภทหมายเหตุ','รายละเอียดหมายเหตุ']];
   products.forEach(p => {
     const cnt  = counts[p.code];
     const sys  = parseInt(p.systemQty);
     const diff = (cnt !== undefined && !isNaN(sys)) ? cnt - sys : '';
     const status = diff === '' ? 'ยังไม่นับ' : diff === 0 ? 'ตรง' : diff > 0 ? 'เกิน' : 'ขาด';
-    rows.push([p.code, p.name, p.category, isNaN(sys) ? '' : sys, cnt ?? '', diff, status, currentZone, currentUser]);
+    const note = notes[p.code] || {};
+    const noteTypeLabelStr = noteTypeLabel[note.type || ''] || note.type || '';
+    const noteTextStr = (note.text || '').replace(/[\r\n,]/g, ' ');  // กัน CSV เพี้ยน
+    rows.push([p.code, p.name, p.category, isNaN(sys) ? '' : sys, cnt ?? '', diff, status, currentZone, currentUser, noteTypeLabelStr, noteTextStr]);
   });
 
-  const csv = rows.map(r => r.join(',')).join('\n');
+  // CSV escape: ใส่ "..." รอบทุกค่า กัน comma ในข้อความ
+  const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
