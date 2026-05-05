@@ -2718,32 +2718,43 @@ function renderList() {
 
           // แสดงปุ่ม ▼ กับทุกรายการที่มี batch (แม้มี 1 lot ก็แสดง)
           const expandIcon = hasBatches
-            ? `<span style="display:inline-block;color:#e74c3c;font-size:10px;margin-left:4px;cursor:pointer" onclick="event.stopPropagation();toggleBatch('${safeId}')">▼ ${batches.length} lot${batches.length>1?'s':''}</span>`
+            ? `<span style="display:inline-block;color:#e74c3c;font-size:10px;margin-left:4px;cursor:pointer" onclick="event.stopPropagation();toggleBatch('${safeId}')">▼ ดู ${batches.length} lot${batches.length>1?'s':''}</span>`
             : '';
 
-          // สร้างแถว batch ที่ซ่อนไว้ - ทำกับทุกรายการที่มี batch
+          // สร้างแถว batch ที่ซ่อนไว้ - แสดงจำนวนแยกแต่ละ Lot ให้ชัดบนมือถือ
           let batchRows = '';
           if (hasBatches) {
             const sortedBatches = [...batches].sort((a, b) => a.exp - b.exp);
+            const totalLotQty = sortedBatches.reduce((sum, b) => sum + (parseInt(b.qty) || 0), 0);
             batchRows = `<tr id="${safeId}" style="display:none;background:rgba(231,76,60,0.04)">
-              <td colspan="5" style="padding:6px 12px">
-                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">📦 รายละเอียดแต่ละ Lot:</div>
-                <table style="width:100%;font-size:11px">
-                  <tr style="color:var(--muted)">
-                    <th style="text-align:left;padding:4px">Lot</th>
-                    <th style="text-align:left;padding:4px">รับเข้า</th>
-                    <th style="text-align:left;padding:4px">หมดอายุ</th>
-                    <th style="text-align:right;padding:4px">จำนวน</th>
-                  </tr>
-                  ${sortedBatches.map((b, i) => `
-                    <tr style="color:var(--text)">
-                      <td style="padding:4px">Lot ${i+1}</td>
-                      <td style="padding:4px;color:var(--muted)">${b.dateIn ? fmtLot(b.dateIn) : '—'}</td>
-                      <td style="padding:4px;color:var(--muted)">${fmtExp(b.exp)}</td>
-                      <td style="padding:4px;text-align:right;font-weight:700;color:#e74c3c">${b.qty || 0}</td>
-                    </tr>
-                  `).join('')}
-                </table>
+              <td colspan="5" style="padding:10px 12px">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+                  <div style="font-size:12px;color:var(--muted);font-weight:700">📦 รายละเอียดแต่ละ Lot</div>
+                  <div style="font-size:12px;color:var(--accent);font-weight:800;background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.18);border-radius:999px;padding:3px 8px;white-space:nowrap">รวม ${totalLotQty}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  ${sortedBatches.map((b, i) => {
+                    const lotQty = parseInt(b.qty) || 0;
+                    return `
+                      <div style="display:grid;grid-template-columns:54px 1fr 1fr 64px;align-items:center;gap:6px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:8px 10px;font-size:11px">
+                        <div style="font-weight:800;color:var(--text)">Lot ${i+1}</div>
+                        <div>
+                          <div style="color:var(--muted);font-size:10px">รับเข้า</div>
+                          <div style="color:var(--text);font-weight:600">${b.dateIn ? fmtLot(b.dateIn) : '—'}</div>
+                        </div>
+                        <div>
+                          <div style="color:var(--muted);font-size:10px">หมดอายุ</div>
+                          <div style="color:var(--text);font-weight:600">${fmtExp(b.exp)}</div>
+                        </div>
+                        <div style="text-align:right">
+                          <div style="color:var(--muted);font-size:10px">จำนวน</div>
+                          <div style="color:var(--accent);font-size:16px;font-weight:900;line-height:1">${lotQty}</div>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+                ${sortedBatches.length > 1 ? `<div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:right">${sortedBatches.map((b,i)=>`Lot ${i+1}: ${parseInt(b.qty)||0}`).join(' + ')} = <b style="color:var(--accent)">${totalLotQty}</b></div>` : ''}
               </td>
             </tr>`;
           }
