@@ -540,20 +540,25 @@
   /* ── TOAST ── */
   .toast {
     position: fixed;
-    bottom: 24px;
+    top: calc(env(safe-area-inset-top, 0px) + 76px);
     left: 50%;
-    transform: translateX(-50%) translateY(80px);
+    transform: translateX(-50%) translateY(-90px);
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 20px;
-    padding: 10px 20px;
+    padding: 10px 18px;
     font-size: 14px;
     font-weight: 600;
-    z-index: 999;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 9999;
+    transition: transform 0.25s ease, opacity 0.25s ease;
     white-space: nowrap;
+    max-width: calc(100vw - 32px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    opacity: 0;
   }
-  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
   .toast.ok   { color: var(--green); border-color: rgba(39,174,96,0.25); }
   .toast.warn { color: var(--yellow); border-color: rgba(243,156,18,0.25); }
   .toast.err  { color: var(--red); border-color: rgba(231,76,60,0.25); }
@@ -1260,13 +1265,21 @@ body {
   margin-top: 22px !important;
 }
 
-/* toast อยู่ในกรอบมือถือ */
+/* toast ย้ายขึ้นด้านบน ไม่บังปุ่มยิง QR / bottom navigation */
 .toast {
-  bottom: 94px !important;
+  top: 86px !important;
+  bottom: auto !important;
   background: rgba(255,255,255,.96) !important;
   box-shadow: var(--shadow-card);
   max-width: calc(min(100vw, var(--phone-w)) - 32px);
   text-align: center;
+  pointer-events: none;
+}
+.toast.show {
+  transform: translateX(-50%) translateY(0) !important;
+}
+@media (min-width: 700px) {
+  .toast { top: 104px !important; }
 }
 
 /* บนมือถือเต็มจอ ไม่ต้องมีมุมมนเกิน */
@@ -1940,6 +1953,7 @@ function save() {
 // TABS
 // ─────────────────────────────────────────
 function switchTab(tab) {
+  hideToast(); // เปลี่ยนหน้าแล้วให้ข้อความแจ้งเตือนหายทันที
   const tabs = ['scan','import','list','summary','expiry','merge'];
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -2398,8 +2412,13 @@ function lookupCode(code) {
   document.getElementById('result-card').classList.add('show');
   document.getElementById('manual-fallback').style.display = 'none';
 
-  if (prod) showToast('✅ พบสินค้า: ' + prod.name, 'ok');
-  else      showToast('⚠️ รหัสนี้ไม่มีในระบบ', 'warn');
+  // แสดงข้อความพบสินค้าแบบชั่วคราวเท่านั้น: 2 วินาทีแล้วหาย
+  // และถ้าผู้ใช้กดไปหน้าอื่น switchTab() จะเรียก hideToast() ให้หายทันที
+  if (!prod) {
+    showToast('⚠️ รหัสนี้ไม่มีในระบบ', 'warn', 2000);
+  } else {
+    showToast('✅ พบสินค้า: ' + currentProduct.name, 'ok', 2000);
+  }
 }
 
 function updateDiff() {
@@ -3078,14 +3097,30 @@ function updateBadge() {
   document.getElementById('count-badge').textContent = done + ' / ' + total;
 }
 
-let toastTimer;
-function showToast(msg, type='ok') {
+let toastShowTimer;
+let toastHideTimer;
+function hideToast() {
   const el = document.getElementById('toast');
+  if (!el) return;
+  clearTimeout(toastShowTimer);
+  clearTimeout(toastHideTimer);
+  el.classList.remove('show');
+}
+function showToast(msg, type='ok', duration=2000) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+
+  clearTimeout(toastShowTimer);
+  clearTimeout(toastHideTimer);
+
   el.textContent = msg;
   el.className = 'toast ' + type;
-  clearTimeout(toastTimer);
-  setTimeout(() => el.classList.add('show'), 10);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+
+  // บังคับให้ browser รีเซ็ต animation ก่อนโชว์ข้อความใหม่
+  void el.offsetWidth;
+
+  toastShowTimer = setTimeout(() => el.classList.add('show'), 10);
+  toastHideTimer = setTimeout(() => el.classList.remove('show'), duration);
 }
 
 // Init
