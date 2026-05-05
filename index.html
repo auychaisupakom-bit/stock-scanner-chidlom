@@ -1847,6 +1847,24 @@ function renderList() {
     return;
   }
 
+  // ฟอร์แมต Lot date เป็น dd/mm/yy
+  const fmtLot = (s) => {
+    if (!s) return '';
+    try {
+      const d = new Date(s);
+      if (isNaN(d)) return '';
+      return d.toLocaleDateString('th-TH', { year:'2-digit', month:'2-digit', day:'2-digit' });
+    } catch(e) { return ''; }
+  };
+
+  // ฟอร์แมตวันหมดอายุเป็น dd/mm/yyyy
+  const fmtExp = (ts) => {
+    try {
+      const d = new Date(ts);
+      return d.toLocaleDateString('th-TH', { year:'numeric', month:'2-digit', day:'2-digit' });
+    } catch(e) { return '—'; }
+  };
+
   document.getElementById('list-container').innerHTML = `
     <div class="table-wrap">
       <table>
@@ -1856,17 +1874,60 @@ function renderList() {
           const sys  = parseInt(p.systemQty);
           const diff = (cnt !== undefined && !isNaN(sys)) ? cnt - sys : null;
           const dc   = diff === null ? 'd-none' : diff === 0 ? 'd-ok' : Math.abs(diff) <= 2 ? 'd-warn' : 'd-err';
+          const batches = (typeof BATCHES_MAP !== 'undefined') ? BATCHES_MAP[p.code] : null;
+          const hasBatches = batches && batches.length > 0;
+          const safeId = `batch-${p.code.replace(/[^a-zA-Z0-9]/g, '_')}`;
+
+          // แสดงปุ่ม ▼ กับทุกรายการที่มี batch (แม้มี 1 lot ก็แสดง)
+          const expandIcon = hasBatches
+            ? `<span style="display:inline-block;color:#00d4ff;font-size:10px;margin-left:4px;cursor:pointer" onclick="event.stopPropagation();toggleBatch('${safeId}')">▼ ${batches.length} lot${batches.length>1?'s':''}</span>`
+            : '';
+
+          // สร้างแถว batch ที่ซ่อนไว้ - ทำกับทุกรายการที่มี batch
+          let batchRows = '';
+          if (hasBatches) {
+            const sortedBatches = [...batches].sort((a, b) => a.exp - b.exp);
+            batchRows = `<tr id="${safeId}" style="display:none;background:rgba(0,212,255,0.04)">
+              <td colspan="5" style="padding:6px 12px">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">📦 รายละเอียดแต่ละ Lot:</div>
+                <table style="width:100%;font-size:11px">
+                  <tr style="color:var(--muted)">
+                    <th style="text-align:left;padding:4px">Lot</th>
+                    <th style="text-align:left;padding:4px">รับเข้า</th>
+                    <th style="text-align:left;padding:4px">หมดอายุ</th>
+                    <th style="text-align:right;padding:4px">จำนวน</th>
+                  </tr>
+                  ${sortedBatches.map((b, i) => `
+                    <tr style="color:var(--text)">
+                      <td style="padding:4px">Lot ${i+1}</td>
+                      <td style="padding:4px;color:var(--muted)">${b.dateIn ? fmtLot(b.dateIn) : '—'}</td>
+                      <td style="padding:4px;color:var(--muted)">${fmtExp(b.exp)}</td>
+                      <td style="padding:4px;text-align:right;font-weight:700;color:#00d4ff">${b.qty || 0}</td>
+                    </tr>
+                  `).join('')}
+                </table>
+              </td>
+            </tr>`;
+          }
+
           return `<tr onclick="editCount('${p.code}')" style="cursor:pointer">
             <td class="code-cell">${p.code}</td>
-            <td style="font-size:12px">${p.name || '—'}</td>
+            <td style="font-size:12px">${p.name || '—'}${expandIcon}</td>
             <td class="counted-cell" style="text-align:right">${isNaN(sys) ? '—' : sys}</td>
             <td class="counted-cell" style="text-align:right">${cnt !== undefined ? cnt : '<span style="color:var(--muted)">—</span>'}</td>
             <td class="diff-cell ${dc}" style="text-align:right">${diff !== null ? (diff > 0 ? '+' : '') + diff : '—'}</td>
-          </tr>`;
+          </tr>${batchRows}`;
         }).join('')}
       </table>
     </div>`;
   renderUnknown();
+}
+
+// Toggle batch detail row
+function toggleBatch(id) {
+  const row = document.getElementById(id);
+  if (!row) return;
+  row.style.display = row.style.display === 'none' ? '' : 'none';
 }
 
 function renderUnknown() {
