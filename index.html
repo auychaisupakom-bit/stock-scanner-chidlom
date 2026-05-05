@@ -1272,51 +1272,93 @@ function renderExpiry() {
   const sortBy    = document.getElementById('expiry-sort').value;
   const now       = new Date();
 
-  // Filter products that have expiry within threshold
-  let items = products.map(p => {
-    const info = getExpiryInfo(p.code);
-    if (!info) return null;
-    if (info.daysLeft > threshold) return null;
-    return { ...p, daysLeft: info.daysLeft, expDate: info.exp };
-  }).filter(Boolean);
+  // ขยาย batches ทั้งหมด → แต่ละ batch กลายเป็น 1 แถว
+  let items = [];
+  products.forEach(p => {
+    const batches = (typeof BATCHES_MAP !== 'undefined') ? BATCHES_MAP[p.code] : null;
+    const skuThreshold = (typeof getExpiryThreshold === 'function') ? getExpiryThreshold(p.code) : 300;
+    const effThreshold = Math.min(skuThreshold, threshold);
+
+    if (batches && batches.length > 0) {
+      batches.forEach((batch, idx) => {
+        const exp = new Date(batch.exp);
+        const daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+        if (daysLeft > effThreshold) return;
+        items.push({
+          ...p,
+          daysLeft,
+          expDate: exp,
+          threshold: skuThreshold,
+          batchQty: batch.qty || 0,
+          batchDateIn: batch.dateIn || null,
+          batchIdx: idx + 1,
+          totalBatches: batches.length,
+        });
+      });
+    } else {
+      const info = getExpiryInfo(p.code);
+      if (!info) return;
+      if (info.daysLeft > effThreshold) return;
+      items.push({
+        ...p, daysLeft: info.daysLeft, expDate: info.exp,
+        threshold: skuThreshold, batchQty: p.systemQty,
+        batchDateIn: null, batchIdx: 1, totalBatches: 1,
+      });
+    }
+  });
 
   if (sortBy === 'date') items.sort((a,b) => a.daysLeft - b.daysLeft);
-  else items.sort((a,b) => a.name.localeCompare(b.name));
+  else items.sort((a,b) => a.name.localeCompare(b.name) || a.daysLeft - b.daysLeft);
 
-  // Stats
+  // Stats - ใช้ threshold ของ SKU แต่ละตัว
   const expired  = items.filter(i => i.daysLeft <= 0).length;
-  const critical = items.filter(i => i.daysLeft > 0 && i.daysLeft <= 90).length;
-  const warn     = items.filter(i => i.daysLeft > 90 && i.daysLeft <= 180).length;
-  const other    = items.filter(i => i.daysLeft > 180).length;
+  const critical = items.filter(i => i.daysLeft > 0 && i.daysLeft <= i.threshold).length;
+  const warn     = items.filter(i => i.daysLeft > i.threshold && i.daysLeft <= i.threshold + 60).length;
+  const other    = items.filter(i => i.daysLeft > i.threshold + 60).length;
 
   document.getElementById('expiry-stats').innerHTML = [
     expired  ? `<div style="background:rgba(255,82,82,0.15);border:1px solid rgba(255,82,82,0.4);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--red)">🔴 หมดอายุแล้ว ${expired}</div>` : '',
-    critical ? `<div style="background:rgba(255,82,82,0.08);border:1px solid rgba(255,82,82,0.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--red)">🔴 ≤90 วัน: ${critical}</div>` : '',
-    warn     ? `<div style="background:rgba(255,215,64,0.08);border:1px solid rgba(255,215,64,0.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--yellow)">🟡 ≤180 วัน: ${warn}</div>` : '',
+    critical ? `<div style="background:rgba(255,82,82,0.08);border:1px solid rgba(255,82,82,0.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--red)">🔴 ใกล้หมดอายุ: ${critical}</div>` : '',
+    warn     ? `<div style="background:rgba(255,215,64,0.08);border:1px solid rgba(255,215,64,0.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--yellow)">🟡 เฝ้าระวัง: ${warn}</div>` : '',
     other    ? `<div style="background:rgba(0,212,255,0.08);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted)">อื่นๆ: ${other}</div>` : '',
   ].join('');
 
   if (!items.length) {
     document.getElementById('expiry-list').innerHTML = `
       <div class="empty-state"><div class="em-icon">🎉</div>
-      <div class="em-text">ไม่มีสินค้าที่หมดอายุภายใน ${threshold} วัน</div></div>`;
+      <div class="em-text">ไม่มีสินค้าที่ใกล้หมดอายุ</div></div>`;
     return;
   }
+
+  // ฟอร์แมต Lot date เป็น dd/mm/yy
+  const fmtLot = (s) => {
+    if (!s) return '';
+    try {
+      const d = new Date(s);
+      if (isNaN(d)) return '';
+      return d.toLocaleDateString('th-TH', { year:'2-digit', month:'2-digit', day:'2-digit' });
+    } catch(e) { return ''; }
+  };
 
   document.getElementById('expiry-list').innerHTML = `
     <div class="table-wrap">
       <table>
-        <tr><th>ชื่อสินค้า</th><th>หมดอายุ</th><th>คงเหลือ</th><th>สถานะ</th></tr>
+        <tr><th>ชื่อสินค้า / Lot</th><th>หมดอายุ</th><th>คงเหลือ</th><th>สถานะ</th></tr>
         ${items.map(p => {
-          const lbl = expiryLabel(p.daysLeft, p.expDate);
-          const cls = expiryClass(p.daysLeft);
+          const lbl = expiryLabel(p.daysLeft, p.expDate, p.threshold);
+          const cls = expiryClass(p.daysLeft, p.threshold);
+          const lotInfo = p.batchDateIn ? fmtLot(p.batchDateIn) : '';
+          const batchLabel = p.totalBatches > 1
+            ? `Lot ${p.batchIdx}/${p.totalBatches}${lotInfo ? ' • รับ '+lotInfo : ''}`
+            : (lotInfo ? 'รับ ' + lotInfo : '');
           return `<tr onclick="switchTab('scan');lookupCode('${p.code}')" style="cursor:pointer">
             <td style="font-size:12px">
               <div style="font-weight:700;color:var(--text)">${p.name}</div>
               <div style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace">${p.code}</div>
+              ${batchLabel ? `<div style="font-size:10px;color:#00d4ff;margin-top:2px">📦 ${batchLabel}</div>` : ''}
             </td>
             <td style="font-size:11px;color:var(--muted);white-space:nowrap">${lbl.date}</td>
-            <td class="counted-cell" style="text-align:right">${p.systemQty}</td>
+            <td class="counted-cell" style="text-align:right">${p.batchQty}</td>
             <td style="white-space:nowrap">
               <span style="font-size:12px;font-weight:700;color:${lbl.color}">${lbl.icon} ${lbl.text}</span>
             </td>
@@ -1326,7 +1368,7 @@ function renderExpiry() {
     </div>`;
 }
 
-// เช็คและแสดง expiry banner ใน result card
+// เช็คและแสดง expiry banner ใน result card - แสดงทุก batch ที่ใกล้หมดอายุ
 function checkExpiryBanner(sku) {
   const banner = document.getElementById('r-expiry-banner');
   const titleEl = document.getElementById('r-expiry-title');
@@ -1334,21 +1376,72 @@ function checkExpiryBanner(sku) {
   banner.className = 'expiry-banner';
   banner.style.display = 'none';
 
-  const info = getExpiryInfo(sku);
-  if (!info) return;
+  const skuThreshold = (typeof getExpiryThreshold === 'function') ? getExpiryThreshold(sku) : 300;
+  const userThreshold = parseInt(document.getElementById('expiry-days')?.value) || 365;
+  const effectiveThreshold = Math.min(skuThreshold, userThreshold);
+  const now = new Date();
 
-  const lbl = expiryLabel(info.daysLeft, info.exp);
-  const cls = expiryClass(info.daysLeft);
+  // ฟอร์แมต Lot date เป็น dd/mm/yy
+  const fmtLot = (s) => {
+    if (!s) return '';
+    try {
+      const d = new Date(s);
+      if (isNaN(d)) return '';
+      return d.toLocaleDateString('th-TH', { year:'2-digit', month:'2-digit', day:'2-digit' });
+    } catch(e) { return ''; }
+  };
 
-  // แสดงเฉพาะถ้า daysLeft <= threshold (ค่าที่ตั้งไว้)
-  const threshold = parseInt(document.getElementById('expiry-days')?.value) || 365;
-  if (info.daysLeft > threshold) return;
+  // ใช้ BATCHES_MAP ถ้ามี - แสดงทุก batch
+  const batches = (typeof BATCHES_MAP !== 'undefined') ? BATCHES_MAP[sku] : null;
 
-  banner.classList.add(cls);
-  banner.style.display = 'block';
-  titleEl.textContent = `${lbl.icon} ${info.daysLeft <= 0 ? 'สินค้าหมดอายุแล้ว!' : 'ใกล้หมดอายุ!'}`;
-  titleEl.style.color = lbl.color;
-  detailEl.textContent = `วันหมดอายุ: ${lbl.date} (${lbl.text})`;
+  if (batches && batches.length > 0) {
+    // กรอง batch ที่เข้าเกณฑ์เตือน
+    const flagged = batches.map((b, idx) => {
+      const exp = new Date(b.exp);
+      const daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+      return { ...b, exp, daysLeft, idx: idx + 1, total: batches.length };
+    }).filter(b => b.daysLeft <= effectiveThreshold);
+
+    if (!flagged.length) return;
+
+    // เลือก class จาก batch ที่ใกล้หมดที่สุด
+    flagged.sort((a, b) => a.daysLeft - b.daysLeft);
+    const worst = flagged[0];
+    const cls = expiryClass(worst.daysLeft, skuThreshold);
+    banner.classList.add(cls);
+    banner.style.display = 'block';
+
+    titleEl.textContent = worst.daysLeft <= 0
+      ? `🔴 มี ${flagged.length} Lot หมดอายุแล้ว!`
+      : (flagged.length > 1 ? `⚠️ ${flagged.length} Lot ใกล้หมดอายุ!` : '⚠️ ใกล้หมดอายุ!');
+    const worstLbl = expiryLabel(worst.daysLeft, worst.exp, skuThreshold);
+    titleEl.style.color = worstLbl.color;
+
+    // แสดงรายการแต่ละ batch
+    detailEl.innerHTML = flagged.map(b => {
+      const lbl = expiryLabel(b.daysLeft, b.exp, skuThreshold);
+      const lotDate = b.dateIn ? fmtLot(b.dateIn) : '';
+      const label = batches.length > 1 ? `Lot ${b.idx}/${b.total}` : 'Lot';
+      const lotInfo = lotDate ? ` (รับ ${lotDate})` : '';
+      return `<div style="margin-top:4px;font-size:12px">
+        📦 <strong>${label}</strong>${lotInfo}: หมด <strong>${lbl.date}</strong> · คงเหลือ <strong>${b.qty || 0}</strong> · 
+        <span style="color:${lbl.color};font-weight:700">${lbl.icon} ${lbl.text}</span>
+      </div>`;
+    }).join('');
+  } else {
+    // fallback - ใช้ EXPIRY_MAP เก่า
+    const info = getExpiryInfo(sku);
+    if (!info) return;
+    if (info.daysLeft > effectiveThreshold) return;
+
+    const lbl = expiryLabel(info.daysLeft, info.exp, skuThreshold);
+    const cls = expiryClass(info.daysLeft, skuThreshold);
+    banner.classList.add(cls);
+    banner.style.display = 'block';
+    titleEl.textContent = `${lbl.icon} ${info.daysLeft <= 0 ? 'สินค้าหมดอายุแล้ว!' : 'ใกล้หมดอายุ!'}`;
+    titleEl.style.color = lbl.color;
+    detailEl.textContent = `วันหมดอายุ: ${lbl.date} (${lbl.text})`;
+  }
 }
 
 // ─────────────────────────────────────────
