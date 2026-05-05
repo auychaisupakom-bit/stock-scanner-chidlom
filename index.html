@@ -471,6 +471,9 @@
     font-weight: 700;
     letter-spacing: 0.5px;
     border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 5;
   }
   .table-wrap td {
     padding: 10px 12px;
@@ -481,6 +484,16 @@
   .code-cell { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); }
   .counted-cell { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
   .diff-cell { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; }
+
+  /* Mobile: บีบ padding และ font ให้ทุกคอลัมน์พอดีหน้าจอ */
+  @media (max-width: 480px) {
+    .table-wrap table { font-size: 12px; }
+    .table-wrap th { padding: 8px 4px; font-size: 10px; letter-spacing: 0; }
+    .table-wrap td { padding: 8px 4px; }
+    .code-cell { font-size: 10px; }
+    .counted-cell { font-size: 12px; }
+    .diff-cell { font-size: 11px; }
+  }
   .d-ok   { color: var(--green); }
   .d-warn { color: var(--yellow); }
   .d-err  { color: var(--red); }
