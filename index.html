@@ -811,11 +811,30 @@
 
     <div id="diff-display" style="margin-bottom:14px"></div>
 
-    <!-- ช่องหมายเหตุ -->
-    <div style="margin-bottom:14px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:12px">
-      <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">📝 หมายเหตุ (ถ้ามีปัญหา)</div>
-      <select id="note-type" onchange="onNoteTypeChange()"
-        style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:13px;outline:none;margin-bottom:8px;cursor:pointer">
+    <!-- ปุ่มเปิด Modal หมายเหตุ -->
+    <button type="button" id="note-trigger-btn" onclick="openNoteModal()"
+      style="width:100%;background:var(--surface);border:1px dashed var(--border);border-radius:10px;padding:10px;color:var(--muted);font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;margin-bottom:12px;display:flex;align-items:center;justify-content:center;gap:6px;transition:all 0.2s">
+      <span id="note-trigger-icon">📝</span>
+      <span id="note-trigger-label">เพิ่มหมายเหตุ (ถ้ามีปัญหา)</span>
+    </button>
+
+    <!-- Hidden inputs - เก็บค่า note ที่ผู้ใช้เลือก -->
+    <input type="hidden" id="note-type" value="">
+    <input type="hidden" id="note-text" value="">
+
+    <button class="btn btn-primary" onclick="saveCount()">✅ บันทึกยอดนับ</button>
+    <button class="btn btn-ghost" onclick="cancelScan()">← ยกเลิก / ย้อนกลับ</button>
+  </div>
+
+  <!-- Modal Popup สำหรับใส่หมายเหตุ -->
+  <div id="note-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;padding:20px"
+    onclick="if(event.target===this)closeNoteModal()">
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:20px;max-width:400px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.5)">
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:14px">📝 หมายเหตุ</div>
+
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">ประเภทปัญหา</div>
+      <select id="note-type-modal"
+        style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:14px;outline:none;margin-bottom:14px;cursor:pointer">
         <option value="">— ไม่มีปัญหา —</option>
         <option value="damaged">📦 บรรจุภัณฑ์เสียหาย</option>
         <option value="wet">💧 สินค้าเปียก/ชื้น</option>
@@ -824,12 +843,22 @@
         <option value="mixed_lot">🔀 Lot ผสมปนกัน</option>
         <option value="other">❓ อื่นๆ</option>
       </select>
-      <textarea id="note-text" rows="2" placeholder="พิมพ์รายละเอียดเพิ่มเติม (ถ้ามี)..."
-        style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:9px 12px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:13px;outline:none;resize:vertical;min-height:50px"></textarea>
-    </div>
 
-    <button class="btn btn-primary" onclick="saveCount()">✅ บันทึกยอดนับ</button>
-    <button class="btn btn-ghost" onclick="cancelScan()">← ยกเลิก / ย้อนกลับ</button>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:6px">รายละเอียด (ถ้ามี)</div>
+      <textarea id="note-text-modal" rows="3" placeholder="พิมพ์รายละเอียดเพิ่มเติม..."
+        style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-family:'Sarabun',sans-serif;font-size:14px;outline:none;resize:vertical;min-height:80px;margin-bottom:14px"></textarea>
+
+      <div style="display:flex;gap:8px">
+        <button type="button" onclick="clearAndCloseNote()"
+          style="flex:1;background:transparent;border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--muted);font-family:'Sarabun',sans-serif;font-size:14px;cursor:pointer">
+          🗑️ ล้าง
+        </button>
+        <button type="button" onclick="saveNoteFromModal()"
+          style="flex:2;background:var(--accent);border:none;border-radius:10px;padding:10px;color:#000;font-weight:700;font-family:'Sarabun',sans-serif;font-size:14px;cursor:pointer">
+          ✅ บันทึกหมายเหตุ
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- ค้นหาชื่อสินค้า -->
@@ -1664,6 +1693,8 @@ function lookupCode(code) {
   const noteTextEl = document.getElementById('note-text');
   if (noteTypeEl) noteTypeEl.value = existingNote?.type || '';
   if (noteTextEl) noteTextEl.value = existingNote?.text || '';
+  // อัปเดตปุ่มเปิด modal ให้แสดงสถานะปัจจุบัน
+  if (typeof updateNoteTriggerLabel === 'function') updateNoteTriggerLabel();
 
   const prevCount = counts[lookupKey];
   // ถ้าเคยนับแล้วใช้ค่าเดิม, ถ้ายังไม่เคยนับใช้ systemQty (ยอดในคลัง)
@@ -1761,10 +1792,80 @@ function saveCount() {
   cancelScan();
 }
 
-// Trigger เมื่อเปลี่ยนประเภทหมายเหตุ (no-op currently, ไว้เผื่อขยาย)
-function onNoteTypeChange() {
-  // อนาคตอาจจะเช็คว่าถ้าเลือก type แล้วต้องบังคับใส่ text ก็ได้
+// ─── Note Modal Functions ──────────────────────────────────
+const NOTE_TYPE_LABELS = {
+  '': '',
+  'damaged':   '📦 บรรจุภัณฑ์เสียหาย',
+  'wet':       '💧 สินค้าเปียก/ชื้น',
+  'missing':   '🔍 สินค้าหายไป',
+  'expired':   '⛔ หมดอายุแล้ว',
+  'mixed_lot': '🔀 Lot ผสมปนกัน',
+  'other':     '❓ อื่นๆ',
+};
+
+function openNoteModal() {
+  // Copy ค่าจาก hidden inputs ไปยัง modal
+  const curType = document.getElementById('note-type').value;
+  const curText = document.getElementById('note-text').value;
+  document.getElementById('note-type-modal').value = curType;
+  document.getElementById('note-text-modal').value = curText;
+  document.getElementById('note-modal').style.display = 'flex';
 }
+
+function closeNoteModal() {
+  document.getElementById('note-modal').style.display = 'none';
+}
+
+function saveNoteFromModal() {
+  // Copy ค่าจาก modal กลับไปยัง hidden inputs
+  const newType = document.getElementById('note-type-modal').value;
+  const newText = document.getElementById('note-text-modal').value.trim();
+  document.getElementById('note-type').value = newType;
+  document.getElementById('note-text').value = newText;
+  updateNoteTriggerLabel();
+  closeNoteModal();
+}
+
+function clearAndCloseNote() {
+  document.getElementById('note-type-modal').value = '';
+  document.getElementById('note-text-modal').value = '';
+  document.getElementById('note-type').value = '';
+  document.getElementById('note-text').value = '';
+  updateNoteTriggerLabel();
+  closeNoteModal();
+}
+
+// อัปเดตข้อความบนปุ่มเปิด modal ให้แสดงสถานะปัจจุบัน
+function updateNoteTriggerLabel() {
+  const type = document.getElementById('note-type').value;
+  const text = document.getElementById('note-text').value;
+  const btn  = document.getElementById('note-trigger-btn');
+  const icon = document.getElementById('note-trigger-icon');
+  const label = document.getElementById('note-trigger-label');
+
+  if (type || text) {
+    // มีหมายเหตุแล้ว → แสดงสถานะ
+    const typeLabel = NOTE_TYPE_LABELS[type] || '';
+    const preview = text ? (text.length > 30 ? text.slice(0, 30) + '...' : text) : '';
+    icon.textContent = '✏️';
+    label.innerHTML = typeLabel + (preview ? ` · ${preview}` : '');
+    btn.style.borderStyle = 'solid';
+    btn.style.borderColor = '#ff9533';
+    btn.style.color = '#ff9533';
+    btn.style.background = 'rgba(255,149,51,0.08)';
+  } else {
+    // ยังไม่มีหมายเหตุ → แสดง default
+    icon.textContent = '📝';
+    label.textContent = 'เพิ่มหมายเหตุ (ถ้ามีปัญหา)';
+    btn.style.borderStyle = 'dashed';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--muted)';
+    btn.style.background = 'var(--surface)';
+  }
+}
+
+// Trigger เมื่อเปลี่ยนประเภทหมายเหตุ (legacy - ไม่ใช้แล้วแต่เก็บไว้กัน error)
+function onNoteTypeChange() {}
 
 function cancelScan() {
   currentProduct = null;
