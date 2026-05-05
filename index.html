@@ -2040,24 +2040,23 @@ function renderList() {
           if (hasBatches) {
             const sortedBatches = [...batches].sort((a, b) => a.exp - b.exp);
             batchRows = `<tr id="${safeId}" style="display:none;background:rgba(0,212,255,0.04)">
-              <td colspan="5" style="padding:6px 12px">
-                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">📦 รายละเอียดแต่ละ Lot:</div>
-                <table style="width:100%;font-size:11px">
-                  <tr style="color:var(--muted)">
-                    <th style="text-align:left;padding:4px">Lot</th>
-                    <th style="text-align:left;padding:4px">รับเข้า</th>
-                    <th style="text-align:left;padding:4px">หมดอายุ</th>
-                    <th style="text-align:right;padding:4px">จำนวน</th>
-                  </tr>
-                  ${sortedBatches.map((b, i) => `
-                    <tr style="color:var(--text)">
-                      <td style="padding:4px">Lot ${i+1}</td>
-                      <td style="padding:4px;color:var(--muted)">${b.dateIn ? fmtLot(b.dateIn) : '—'}</td>
-                      <td style="padding:4px;color:var(--muted)">${fmtExp(b.exp)}</td>
-                      <td style="padding:4px;text-align:right;font-weight:700;color:#00d4ff">${b.qty || 0}</td>
-                    </tr>
-                  `).join('')}
-                </table>
+              <td colspan="5" style="padding:10px 12px">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:8px">📦 รายละเอียดแต่ละ Lot:</div>
+                ${sortedBatches.map((b, i) => `
+                  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;margin-bottom:6px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);border-radius:8px;font-size:12px">
+                    <div style="flex:1">
+                      <div style="font-weight:700;color:var(--accent);margin-bottom:2px">Lot ${i+1}</div>
+                      <div style="font-size:10px;color:var(--muted);line-height:1.4">
+                        รับเข้า: <span style="color:var(--text)">${b.dateIn ? fmtLot(b.dateIn) : '—'}</span><br>
+                        หมดอายุ: <span style="color:var(--text)">${fmtExp(b.exp)}</span>
+                      </div>
+                    </div>
+                    <div style="text-align:right;padding-left:10px">
+                      <div style="font-size:18px;font-weight:700;color:var(--accent);font-family:'JetBrains Mono',monospace">${b.qty || 0}</div>
+                      <div style="font-size:9px;color:var(--muted)">ชิ้น</div>
+                    </div>
+                  </div>
+                `).join('')}
               </td>
             </tr>`;
           }
