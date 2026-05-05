@@ -743,7 +743,6 @@
   <div class="tab" onclick="switchTab('list')">📋 รายการ</div>
   <div class="tab" onclick="switchTab('summary')">📊 สรุป</div>
   <div class="tab" onclick="switchTab('expiry')">⚠️ หมดอายุ</div>
-  <div class="tab" onclick="switchTab('merge')">🔗 รวม</div>
 </div>
 
 <!-- ═══ SCAN PAGE ═══ -->
@@ -1057,38 +1056,7 @@ B001,นมกล่อง,เครื่องดื่ม,120"></textarea>
   <div id="expiry-list"></div>
 </div>
 
-<!-- ═══ MERGE PAGE ═══ -->
-<div class="page" id="page-merge">
-  <div class="section-label">รวมไฟล์จากทุกคน</div>
-
-  <label class="merge-drop" id="merge-drop-zone">
-    <input type="file" id="merge-file-input" accept=".csv" multiple onchange="handleMergeFiles(this)">
-    <div style="font-size:32px;margin-bottom:8px">📁</div>
-    <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px">อัปโหลดไฟล์ CSV ทุกคน</div>
-    <div style="font-size:12px;color:var(--muted)">เลือกได้หลายไฟล์พร้อมกัน</div>
-  </label>
-
-  <div class="merge-file-list" id="merge-file-list"></div>
-
-  <div id="merge-progress-wrap" style="display:none;margin-bottom:12px">
-    <div style="font-size:12px;color:var(--muted);margin-bottom:6px" id="merge-progress-label">กำลังรวม...</div>
-    <div class="progress-bar-wrap">
-      <div class="progress-bar" id="merge-progress-bar" style="width:0%"></div>
-    </div>
-  </div>
-
-  <button class="btn btn-primary" id="merge-btn" onclick="doMerge()" style="display:none">🔗 รวมไฟล์ทั้งหมด</button>
-
-  <div id="merge-result" style="display:none;margin-top:16px">
-    <div class="section-label">ผลการรวม</div>
-    <div class="stat-grid" id="merge-stats"></div>
-    <button class="btn btn-primary" onclick="exportMergedCSV()" style="margin-top:4px">📄 ดาวน์โหลดผลรวม CSV</button>
-    <button class="btn btn-ghost" onclick="exportMergedText()" style="margin-top:0">📋 คัดลอกสรุปส่ง LINE</button>
-
-    <div class="section-label" style="margin-top:20px">รายการที่ยอดต่าง</div>
-    <div class="table-wrap" id="merge-diff-table"></div>
-  </div>
-</div>
+<!-- ═══ MERGE PAGE ═══ ลบแล้ว ใช้ Firebase real-time sync แทน -->
 
 </div><!-- end tabs-and-pages -->
 
@@ -1279,7 +1247,7 @@ function save() {
 // TABS
 // ─────────────────────────────────────────
 function switchTab(tab) {
-  const tabs = ['scan','import','list','summary','expiry','merge'];
+  const tabs = ['scan','import','list','summary','expiry'];
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', tabs[i] === tab));
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + tab).classList.add('active');
