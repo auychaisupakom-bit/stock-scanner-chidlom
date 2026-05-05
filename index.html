@@ -687,6 +687,606 @@
     border-radius: 20px;
     transition: width 0.3s;
   }
+
+/* ─────────────────────────────────────────
+   MOBILE APP REDESIGN PATCH
+   ปรับหน้าตาให้ใกล้เคียงภาพตัวอย่าง: mobile app, card, bottom nav
+   ───────────────────────────────────────── */
+
+:root {
+  --bg: #fff7f1;
+  --bg2: #fffdfb;
+  --surface: rgba(255,255,255,.92);
+  --surface2: #fff2ed;
+  --border: #f1dfd4;
+  --accent: #ef3f36;
+  --accent2: #c9302a;
+  --accent3: #ff7b66;
+  --accent-soft: #ffe5de;
+  --text: #2b1913;
+  --muted: #9b7f72;
+  --shadow-soft: 0 12px 34px rgba(196, 66, 48, .10);
+  --shadow-card: 0 8px 24px rgba(90, 47, 32, .075);
+  --phone-w: 430px;
+}
+
+html {
+  background: #f1e7df;
+}
+
+body {
+  min-height: 100dvh;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(255, 231, 219, .95) 0, transparent 30%),
+    radial-gradient(circle at 85% 22%, rgba(255, 220, 205, .72) 0, transparent 28%),
+    linear-gradient(135deg, #fffaf6 0%, #fff3eb 44%, #fffaf6 100%);
+  color: var(--text);
+}
+
+/* desktop ให้เห็นเป็นกรอบมือถือกลางจอ */
+.topbar,
+.zone-banner,
+#tabs-and-pages {
+  max-width: var(--phone-w);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (min-width: 700px) {
+  body {
+    padding: 18px 0;
+  }
+
+  .topbar {
+    margin-top: 0;
+    border-radius: 34px 34px 0 0;
+    border-left: 1px solid rgba(241, 223, 212, .75);
+    border-right: 1px solid rgba(241, 223, 212, .75);
+  }
+
+  .zone-banner,
+  #tabs-and-pages {
+    border-left: 1px solid rgba(241, 223, 212, .75);
+    border-right: 1px solid rgba(241, 223, 212, .75);
+  }
+
+  #tabs-and-pages {
+    min-height: calc(100dvh - 132px);
+    border-radius: 0 0 34px 34px;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(66, 28, 18, .18);
+    background: rgba(255, 247, 241, .92);
+  }
+}
+
+/* setup หน้าแรกเป็นมือถือ ไม่ยืดเต็มจอคอม */
+.setup-screen {
+  left: 50% !important;
+  right: auto !important;
+  top: 0 !important;
+  bottom: auto !important;
+  transform: translateX(-50%);
+  width: min(100vw, var(--phone-w)) !important;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  padding: 42px 30px 28px !important;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255,255,255,.92), transparent 22%),
+    radial-gradient(circle at 88% 3%, rgba(255,224,209,.75), transparent 25%),
+    linear-gradient(150deg, #fffaf7 0%, #fff2e9 52%, #fffaf7 100%) !important;
+}
+
+.setup-screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(125deg, transparent 0 18%, rgba(255,255,255,.58) 18.3% 19.4%, transparent 19.7%),
+    linear-gradient(35deg, transparent 0 70%, rgba(255,224,209,.44) 70.3% 71.5%, transparent 71.8%);
+  pointer-events: none;
+}
+
+.setup-screen > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 700px) {
+  .setup-screen {
+    top: 18px !important;
+    min-height: calc(100dvh - 36px);
+    max-height: calc(100dvh - 36px);
+    border-radius: 38px;
+    box-shadow: 0 24px 80px rgba(66, 28, 18, .18);
+    border: 1px solid rgba(241, 223, 212, .8);
+  }
+}
+
+.setup-logo {
+  margin-top: 8px;
+  margin-bottom: 10px !important;
+}
+
+.setup-logo svg {
+  width: 156px !important;
+  height: 156px !important;
+  filter: drop-shadow(0 18px 32px rgba(231,76,60,.30)) !important;
+}
+
+.setup-title {
+  font-size: 36px !important;
+  line-height: 1.05;
+  color: #d62f28 !important;
+  font-weight: 800 !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,.9);
+}
+
+.setup-sub {
+  font-size: 16px !important;
+  line-height: 1.48;
+  margin-bottom: 28px !important;
+}
+
+.setup-label {
+  color: #8d6f62 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  font-size: 13px !important;
+}
+
+.setup-input,
+#search-input,
+#product-search,
+#manual-code,
+#filter-status,
+#expiry-sort,
+#expiry-days,
+.unknown-input,
+.manual-area,
+.manual-area textarea {
+  background: rgba(255,255,255,.90) !important;
+  border-color: rgba(231, 76, 60, .16) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 8px 22px rgba(88, 39, 23, .045);
+}
+
+.setup-input {
+  min-height: 58px;
+  font-size: 16px !important;
+}
+
+.zone-chips {
+  gap: 10px !important;
+}
+
+.zone-chip {
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.86) !important;
+  box-shadow: 0 7px 18px rgba(88, 39, 23, .05);
+  padding: 9px 18px !important;
+  color: #8b6e62 !important;
+}
+
+.zone-chip.selected {
+  background: #fff3ef !important;
+  border-color: #ef3f36 !important;
+  color: #ef3f36 !important;
+  box-shadow: 0 10px 22px rgba(239,63,54,.14);
+}
+
+/* ปุ่มหลักแบบแดงนูน */
+.btn-primary {
+  min-height: 56px;
+  border-radius: 20px !important;
+  background: linear-gradient(180deg, #ff5148 0%, #ec2d28 60%, #c92521 100%) !important;
+  box-shadow: 0 14px 28px rgba(239,63,54,.26), inset 0 1px 0 rgba(255,255,255,.28) !important;
+}
+
+.btn-primary:active {
+  transform: translateY(1px) scale(.99) !important;
+}
+
+/* top bar เหมือนแอป */
+.topbar {
+  min-height: 58px;
+  padding: 12px 18px !important;
+  background: rgba(255,255,255,.95) !important;
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(241, 223, 212, .82) !important;
+  box-shadow: 0 6px 18px rgba(88, 39, 23, .04) !important;
+}
+
+.topbar::before {
+  content: "☰";
+  color: #8b6e62;
+  font-size: 24px;
+  margin-right: 12px;
+  line-height: 1;
+}
+
+.topbar-title {
+  font-size: 20px !important;
+  color: #b5211d !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+}
+
+.topbar-sub {
+  display: none;
+}
+
+#firebase-status {
+  position: relative;
+  color: #2faa5f !important;
+  font-weight: 700;
+  font-size: 12px !important;
+}
+
+.badge {
+  background: #fff4f1 !important;
+  color: #e83a34 !important;
+  border: 1px solid rgba(239,63,54,.18);
+  border-radius: 999px !important;
+  padding: 6px 10px !important;
+  box-shadow: none !important;
+}
+
+.zone-banner {
+  padding: 12px 20px !important;
+  background: rgba(255,255,255,.94) !important;
+  border-bottom: 1px solid rgba(241, 223, 212, .82) !important;
+}
+
+.zone-banner-label {
+  font-size: 12px !important;
+  color: #9a8277 !important;
+}
+
+.zone-banner-value {
+  font-size: 15px !important;
+  color: var(--text) !important;
+  font-weight: 800 !important;
+}
+
+/* bottom navigation แทน tabs ด้านบน */
+.tabs {
+  position: fixed !important;
+  top: auto !important;
+  left: 50% !important;
+  bottom: 0 !important;
+  width: min(100vw, var(--phone-w)) !important;
+  transform: translateX(-50%);
+  height: 76px;
+  padding: 8px 8px 10px !important;
+  background: rgba(255,255,255,.95) !important;
+  backdrop-filter: blur(18px);
+  border-top: 1px solid rgba(241, 223, 212, .82) !important;
+  border-bottom: none !important;
+  box-shadow: 0 -14px 34px rgba(60, 27, 18, .08);
+  z-index: 150 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-around;
+}
+
+@media (min-width: 700px) {
+  .tabs {
+    bottom: 18px !important;
+    border-radius: 0 0 34px 34px;
+  }
+}
+
+/* reorder ให้ปุ่มยิง QR อยู่ตรงกลางเหมือนภาพ */
+.tab:nth-child(3) { order: 1; }
+.tab:nth-child(2) { order: 2; }
+.tab:nth-child(1) { order: 3; }
+.tab:nth-child(4) { order: 4; }
+.tab:nth-child(6) { order: 5; }
+.tab:nth-child(5) { order: 6; }
+
+.tab {
+  border-bottom: none !important;
+  padding: 4px 2px !important;
+  height: 58px;
+  color: #9b8177 !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.tab.active {
+  color: #ef3f36 !important;
+  background: #fff4f1;
+}
+
+.tab:nth-child(1) {
+  position: relative;
+  width: 70px;
+  min-width: 70px;
+  height: 70px;
+  margin-top: -28px;
+  border-radius: 50% !important;
+  color: white !important;
+  background: linear-gradient(180deg, #ff5148 0%, #ec2d28 60%, #c92521 100%) !important;
+  box-shadow: 0 14px 28px rgba(239,63,54,.30), inset 0 1px 0 rgba(255,255,255,.28);
+  font-size: 10px !important;
+}
+
+.tab:nth-child(1).active {
+  color: white !important;
+}
+
+#tabs-and-pages {
+  padding-bottom: 92px;
+}
+
+.page {
+  padding: 16px 18px 96px !important;
+  animation: appFade .18s ease;
+}
+
+@keyframes appFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* card / section style */
+.scanner-wrapper,
+.result-card,
+.upload-zone,
+.table-wrap,
+.stat-card,
+.export-btn,
+.merge-drop,
+.merge-file-item,
+.empty-state {
+  border-radius: 22px !important;
+  border-color: rgba(241, 223, 212, .78) !important;
+  background: rgba(255,255,255,.92) !important;
+  box-shadow: var(--shadow-card) !important;
+}
+
+.scanner-wrapper {
+  overflow: hidden;
+}
+
+.cam-start {
+  min-height: 230px;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255, 232, 220, .9), transparent 40%),
+    linear-gradient(160deg, #fffaf7, #fff1e9);
+}
+
+.cam-icon {
+  width: 82px !important;
+  height: 82px !important;
+  border-radius: 26px !important;
+  background: #fff4f1 !important;
+  border-color: rgba(239,63,54,.18) !important;
+  color: #ef3f36;
+  box-shadow: 0 12px 24px rgba(239,63,54,.12);
+}
+
+.cam-text {
+  font-size: 16px !important;
+  color: var(--text) !important;
+  font-weight: 800 !important;
+}
+
+.cam-sub {
+  color: #9b8177 !important;
+}
+
+#reader {
+  min-height: 360px;
+  background: #1c1918;
+}
+
+.scan-frame {
+  width: 238px !important;
+  height: 238px !important;
+}
+
+.scan-frame::before, .scan-frame::after,
+.scan-frame span::before, .scan-frame span::after {
+  width: 34px !important;
+  height: 34px !important;
+  border-color: #ff342e !important;
+  border-width: 4px !important;
+}
+
+.scan-line {
+  background: linear-gradient(90deg, transparent, #ff342e, transparent) !important;
+  height: 3px !important;
+  filter: drop-shadow(0 0 10px rgba(255,52,46,.8));
+}
+
+/* result card แบบ bottom sheet */
+.result-card {
+  padding: 18px !important;
+}
+
+.result-code {
+  color: #8f817a !important;
+  font-size: 13px !important;
+}
+
+.result-name {
+  font-size: 18px !important;
+  line-height: 1.35;
+}
+
+.meta-pill {
+  background: #fff7f3 !important;
+  border-color: rgba(241, 223, 212, .95) !important;
+  border-radius: 999px !important;
+}
+
+.qty-control {
+  border-radius: 20px !important;
+  background: #fff4f1 !important;
+  border: none !important;
+}
+
+.qty-btn {
+  color: #ef3f36 !important;
+  font-weight: 700 !important;
+}
+
+.diff-badge {
+  border-radius: 999px !important;
+}
+
+/* summary card */
+.stat-grid {
+  gap: 12px !important;
+}
+
+.stat-card {
+  min-height: 136px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+}
+
+.stat-card::before {
+  display: block;
+  margin: 0 auto 10px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  line-height: 52px;
+  font-size: 24px;
+  background: #fff0eb;
+}
+
+.stat-card:nth-child(1)::before { content: "📋"; color: #ef3f36; }
+.stat-card:nth-child(2)::before { content: "✅"; background: #e8f7ef; }
+.stat-card:nth-child(3)::before { content: "☑️"; background: #e8f7ef; }
+.stat-card:nth-child(4)::before { content: "✕"; background: #fff0eb; }
+
+.stat-num {
+  font-size: 34px !important;
+  margin-bottom: 8px !important;
+}
+
+.stat-label {
+  font-size: 13px !important;
+  color: #8e7468 !important;
+}
+
+.export-btn {
+  min-height: 72px;
+  padding: 15px 16px !important;
+  background: rgba(255,255,255,.94) !important;
+}
+
+.export-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: #fff0eb;
+  color: #ef3f36;
+}
+
+.export-name {
+  font-size: 15px !important;
+}
+
+.export-desc {
+  font-size: 12px !important;
+  margin-top: 2px;
+}
+
+/* list / table ให้ดูเป็นการ์ดนุ่มขึ้น */
+.table-wrap {
+  overflow: hidden;
+}
+
+.table-wrap th {
+  background: #fff5f0 !important;
+  color: #9b8177 !important;
+  border-bottom-color: rgba(241,223,212,.9) !important;
+}
+
+.table-wrap td {
+  border-bottom-color: rgba(241,223,212,.55) !important;
+}
+
+.code-cell {
+  color: #8b7a72 !important;
+}
+
+.d-ok { color: var(--green) !important; }
+.d-warn { color: #f39c12 !important; }
+.d-err { color: #ef3f36 !important; }
+
+/* import */
+.upload-zone {
+  padding: 22px 20px !important;
+  text-align: left !important;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.upload-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  margin: 0 !important;
+  background: #fff0eb;
+  color: #ef3f36;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.section-label {
+  color: #5b3b31 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  font-size: 15px !important;
+  margin-top: 22px !important;
+}
+
+/* toast อยู่ในกรอบมือถือ */
+.toast {
+  bottom: 94px !important;
+  background: rgba(255,255,255,.96) !important;
+  box-shadow: var(--shadow-card);
+  max-width: calc(min(100vw, var(--phone-w)) - 32px);
+  text-align: center;
+}
+
+/* บนมือถือเต็มจอ ไม่ต้องมีมุมมนเกิน */
+@media (max-width: 699px) {
+  body {
+    padding: 0;
+  }
+
+  .topbar,
+  .zone-banner,
+  #tabs-and-pages {
+    max-width: none;
+  }
+
+  .setup-screen {
+    width: 100vw !important;
+    border-radius: 0;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -770,11 +1370,11 @@
 <!-- TOP BAR -->
 <div class="topbar" id="main-app" style="display:none">
   <div>
-    <div class="topbar-title">📦 นับสต๊อก</div>
+    <div class="topbar-title">นับสต๊อก</div>
     <div class="topbar-sub" id="topbar-sub-text">Handheld Scanner</div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
-    <span id="firebase-status" style="font-size:11px;color:var(--muted)">⏳ กำลังเชื่อม...</span>
+    <span id="firebase-status" style="font-size:11px;color:var(--muted)">● ซิงค์แล้ว</span>
     <div class="badge" id="count-badge">0 / 439</div>
   </div>
 </div>
@@ -792,12 +1392,12 @@
 
 <!-- TABS -->
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('scan')">🎯 ยิง QR</div>
-  <div class="tab" onclick="switchTab('import')">📂 นำเข้า</div>
-  <div class="tab" onclick="switchTab('list')">📋 รายการ</div>
-  <div class="tab" onclick="switchTab('summary')">📊 สรุป</div>
-  <div class="tab" onclick="switchTab('expiry')">⚠️ หมดอายุ</div>
-  <div class="tab" onclick="switchTab('merge')">🔗 รวม</div>
+  <div class="tab active" onclick="switchTab('scan')">▦<span>ยิง QR</span></div>
+  <div class="tab" onclick="switchTab('import')">↥<span>นำเข้า</span></div>
+  <div class="tab" onclick="switchTab('list')">▤<span>รายการ</span></div>
+  <div class="tab" onclick="switchTab('summary')">▥<span>สรุป</span></div>
+  <div class="tab" onclick="switchTab('expiry')">⚠<span>หมดอายุ</span></div>
+  <div class="tab" onclick="switchTab('merge')">↔<span>รวม</span></div>
 </div>
 
 <!-- ═══ SCAN PAGE ═══ -->
