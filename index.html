@@ -11,17 +11,22 @@
   @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
 
   :root {
-    --bg: #0a0f1e;
-    --surface: #111827;
-    --surface2: #1a2235;
-    --border: #1e3a5f;
-    --accent: #00d4ff;
-    --accent2: #0099cc;
-    --green: #00e676;
-    --red: #ff5252;
-    --yellow: #ffd740;
-    --text: #e8f4fd;
-    --muted: #6b8cae;
+    --bg: #fdf8f3;             /* พื้นหลังครีมอ่อน */
+    --bg2: #ffffff;            /* พื้นหลังที่ขาวกว่า */
+    --surface: #ffffff;        /* การ์ด/พื้นที่หลัก */
+    --surface2: #fef2ec;       /* พื้นที่รอง */
+    --border: #f0e0d0;         /* เส้นขอบนุ่มๆ สีครีม */
+    --accent: #e74c3c;         /* แดงส้มหลัก (icon) */
+    --accent2: #c0392b;        /* แดงเข้ม (hover) */
+    --accent-soft: #fde4dd;    /* แดงอ่อน (background icon) */
+    --green: #27ae60;          /* เขียว */
+    --green-soft: #d5f0e0;
+    --red: #e74c3c;            /* แดง = สีเดียวกับ accent */
+    --red-soft: #fde4dd;
+    --yellow: #f39c12;         /* ส้มเหลือง */
+    --yellow-soft: #fef0d6;
+    --text: #2c1810;           /* ข้อความเข้ม */
+    --muted: #8b7568;          /* ข้อความรอง สีน้ำตาลอ่อน */
     --radius: 16px;
   }
 
@@ -46,6 +51,7 @@
     position: sticky;
     top: 0;
     z-index: 100;
+    box-shadow: 0 1px 3px rgba(231,76,60,0.06);
   }
   .topbar-title {
     font-size: 17px;
@@ -57,7 +63,7 @@
 
   .badge {
     background: var(--accent);
-    color: var(--bg);
+    color: #fff;
     font-size: 11px;
     font-weight: 700;
     padding: 3px 10px;
@@ -166,16 +172,16 @@
     display: none;
     animation: slideUp 0.3s ease;
   }
-  .expiry-expired  { background: rgba(255,82,82,0.15); border: 2px solid rgba(255,82,82,0.5); }
-  .expiry-critical { background: rgba(255,82,82,0.08); border: 1px solid rgba(255,82,82,0.4); }
-  .expiry-warn     { background: rgba(255,215,64,0.08); border: 1px solid rgba(255,215,64,0.4); }
-  .expiry-ok       { background: rgba(0,230,118,0.06); border: 1px solid rgba(0,230,118,0.3); }
+  .expiry-expired  { background: rgba(231,76,60,0.10); border: 2px solid rgba(231,76,60,0.4); }
+  .expiry-critical { background: rgba(231,76,60,0.06); border: 1px solid rgba(231,76,60,0.3); }
+  .expiry-warn     { background: rgba(243,156,18,0.08); border: 1px solid rgba(243,156,18,0.3); }
+  .expiry-ok       { background: rgba(39,174,96,0.06); border: 1px solid rgba(39,174,96,0.25); }
   .expiry-title    { font-size: 13px; font-weight: 700; margin-bottom: 3px; }
   .expiry-detail   { font-size: 12px; color: var(--muted); }
 
     .unknown-wrap {
-    background: rgba(255,215,64,0.08);
-    border: 1px solid rgba(255,215,64,0.35);
+    background: rgba(243,156,18,0.08);
+    border: 1px solid rgba(243,156,18,0.25);
     border-radius: 14px;
     padding: 12px 14px;
     margin-bottom: 12px;
@@ -192,7 +198,7 @@
   .unknown-input {
     width: 100%;
     background: var(--surface);
-    border: 1px solid rgba(255,215,64,0.5);
+    border: 1px solid rgba(243,156,18,0.4);
     border-radius: 12px;
     padding: 11px 14px;
     color: var(--text);
@@ -226,7 +232,7 @@
     color: var(--muted); font-size: 12px; font-weight: 700;
     cursor: pointer; font-family: 'Sarabun', sans-serif; transition: all 0.15s;
   }
-  .zoom-preset.active { background: rgba(0,212,255,0.15); border-color: var(--accent); color: var(--accent); }
+  .zoom-preset.active { background: rgba(231,76,60,0.10); border-color: var(--accent); color: var(--accent); }
 
   .torch-btn {
     position: absolute;
@@ -248,20 +254,21 @@
     backdrop-filter: blur(4px);
   }
   .torch-btn.on {
-    background: rgba(255,215,64,0.85);
+    background: rgba(243,156,18,0.85);
     border-color: var(--yellow);
-    box-shadow: 0 0 16px rgba(255,215,64,0.6);
+    box-shadow: 0 0 16px rgba(243,156,18,0.5);
   }
 
   /* ── RESULT CARD ── */
   .result-card {
-    background: var(--surface2);
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 16px;
     margin-bottom: 12px;
     display: none;
     animation: slideUp 0.3s ease;
+    box-shadow: 0 4px 16px rgba(231,76,60,0.06);
   }
   .result-card.show { display: block; }
   @keyframes slideUp {
@@ -352,9 +359,9 @@
     font-size: 15px;
     font-weight: 700;
   }
-  .diff-ok   { background: rgba(0,230,118,0.12); color: var(--green); border: 1px solid rgba(0,230,118,0.3); }
-  .diff-warn { background: rgba(255,215,64,0.12); color: var(--yellow); border: 1px solid rgba(255,215,64,0.3); }
-  .diff-err  { background: rgba(255,82,82,0.12);  color: var(--red);    border: 1px solid rgba(255,82,82,0.3); }
+  .diff-ok   { background: rgba(39,174,96,0.10);  color: var(--green); border: 1px solid rgba(39,174,96,0.25); }
+  .diff-warn { background: rgba(243,156,18,0.10); color: var(--yellow); border: 1px solid rgba(243,156,18,0.25); }
+  .diff-err  { background: rgba(231,76,60,0.10);  color: var(--red);    border: 1px solid rgba(231,76,60,0.25); }
 
   /* ── BTNS ── */
   .btn {
@@ -371,7 +378,8 @@
   }
   .btn-primary {
     background: linear-gradient(135deg, var(--accent), var(--accent2));
-    color: var(--bg);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(231, 76, 60, 0.3);
   }
   .btn-primary:active { transform: scale(0.98); }
   .btn-ghost {
@@ -498,6 +506,7 @@
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 16px 14px;
+    box-shadow: 0 2px 8px rgba(231,76,60,0.04);
   }
   .stat-num {
     font-family: 'JetBrains Mono', monospace;
@@ -545,9 +554,9 @@
     white-space: nowrap;
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
-  .toast.ok   { color: var(--green); border-color: rgba(0,230,118,0.3); }
-  .toast.warn { color: var(--yellow); border-color: rgba(255,215,64,0.3); }
-  .toast.err  { color: var(--red); border-color: rgba(255,82,82,0.3); }
+  .toast.ok   { color: var(--green); border-color: rgba(39,174,96,0.25); }
+  .toast.warn { color: var(--yellow); border-color: rgba(243,156,18,0.25); }
+  .toast.err  { color: var(--red); border-color: rgba(231,76,60,0.25); }
 
   .empty-state {
     text-align: center;
@@ -570,7 +579,16 @@
     padding: 32px 24px;
     gap: 0;
   }
-  .setup-logo { font-size: 52px; margin-bottom: 12px; }
+  .setup-logo {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .setup-logo svg {
+    width: 110px;
+    height: 110px;
+  }
   .setup-title { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
   .setup-sub { font-size: 14px; color: var(--muted); margin-bottom: 32px; text-align: center; }
 
@@ -608,7 +626,7 @@
     font-family: 'Sarabun', sans-serif;
   }
   .zone-chip.selected {
-    background: rgba(0,212,255,0.15);
+    background: rgba(231,76,60,0.10);
     border-color: var(--accent);
     color: var(--accent);
     font-weight: 700;
@@ -616,8 +634,8 @@
 
   /* ── ZONE BANNER (topbar addition) ── */
   .zone-banner {
-    background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(0,153,204,0.1));
-    border-bottom: 1px solid rgba(0,212,255,0.2);
+    background: linear-gradient(135deg, rgba(231,76,60,0.08), rgba(192,57,43,0.08));
+    border-bottom: 1px solid rgba(231,76,60,0.15);
     padding: 8px 20px;
     display: flex;
     align-items: center;
@@ -675,7 +693,56 @@
 
 <!-- SETUP SCREEN -->
 <div class="setup-screen" id="setup-screen">
-  <div class="setup-logo">📦</div>
+  <div class="setup-logo">
+    <svg width="110" height="110" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 12px 28px rgba(231,76,60,0.35))">
+      <defs>
+        <linearGradient id="boxLeftFace" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ff7a6c"/>
+          <stop offset="100%" stop-color="#e74c3c"/>
+        </linearGradient>
+        <linearGradient id="boxRightFace" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#d83b2c"/>
+          <stop offset="100%" stop-color="#a82820"/>
+        </linearGradient>
+        <linearGradient id="boxTopLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#ffc1b3"/>
+          <stop offset="100%" stop-color="#f5a08e"/>
+        </linearGradient>
+        <linearGradient id="boxTopRight" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#f5a08e"/>
+          <stop offset="100%" stop-color="#dd826e"/>
+        </linearGradient>
+        <linearGradient id="boxTape" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#fff8e7"/>
+          <stop offset="100%" stop-color="#f5e8c8"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Top faces (lid) -->
+      <path d="M 22 38 L 60 22 L 60 44 L 22 60 Z" fill="url(#boxTopLeft)"/>
+      <path d="M 60 22 L 98 38 L 98 60 L 60 44 Z" fill="url(#boxTopRight)"/>
+
+      <!-- Front faces -->
+      <path d="M 22 60 L 22 92 L 60 108 L 60 76 Z" fill="url(#boxLeftFace)"/>
+      <path d="M 98 60 L 98 92 L 60 108 L 60 76 Z" fill="url(#boxRightFace)"/>
+
+      <!-- Top tape (horizontal beige band on top - the packing tape) -->
+      <path d="M 36 31 L 74 47 L 74 51 L 36 35 Z" fill="url(#boxTape)" opacity="0.85"/>
+      <path d="M 60 41 L 74 47 L 74 51 L 60 45 Z" fill="#e8d4a8" opacity="0.6"/>
+
+      <!-- Center seam (top opening line) -->
+      <line x1="60" y1="22" x2="60" y2="44" stroke="#8a1f15" stroke-width="1.5" opacity="0.45"/>
+
+      <!-- Front center vertical edge -->
+      <line x1="60" y1="76" x2="60" y2="108" stroke="#7d1f17" stroke-width="1.5" opacity="0.5"/>
+
+      <!-- Highlight on top-left edge for 3D feel -->
+      <path d="M 22 60 L 60 44 L 60 48 L 22 64 Z" fill="#fff" opacity="0.22"/>
+
+      <!-- Subtle shadow on right face bottom -->
+      <path d="M 60 76 L 98 60 L 98 92 L 60 108 Z" fill="#000" opacity="0.05"/>
+    </svg>
+  </div>
   <div class="setup-title">นับสต๊อก</div>
   <div class="setup-sub">กรอกข้อมูลก่อนเริ่มนับ<br>แต่ละคนเลือกโซนของตัวเอง</div>
 
@@ -782,7 +849,7 @@
     </div>
 
     <!-- แจ้งเตือนเมื่อสินค้านี้ถูกนับไปแล้ว -->
-    <div id="r-already-counted" style="display:none;background:rgba(255,215,64,0.1);border:1px solid rgba(255,215,64,0.4);border-radius:12px;padding:10px 14px;margin-bottom:12px">
+    <div id="r-already-counted" style="display:none;background:rgba(243,156,18,0.08);border:1px solid rgba(243,156,18,0.3);border-radius:12px;padding:10px 14px;margin-bottom:12px">
       <div style="font-size:12px;font-weight:700;color:var(--yellow);margin-bottom:4px">⚠️ รายการนี้นับไปแล้ว!</div>
       <div id="r-already-detail" style="font-size:12px;color:var(--muted)">—</div>
       <div style="font-size:11px;color:var(--muted);margin-top:4px">กด "บันทึก" เพื่อทับยอดเดิม หรือ "ยกเลิก" เพื่อออก</div>
@@ -854,7 +921,7 @@
           🗑️ ล้าง
         </button>
         <button type="button" onclick="saveNoteFromModal()"
-          style="flex:2;background:var(--accent);border:none;border-radius:10px;padding:10px;color:#000;font-weight:700;font-family:'Sarabun',sans-serif;font-size:14px;cursor:pointer">
+          style="flex:2;background:var(--accent);border:none;border-radius:10px;padding:10px;color:#fff;font-weight:700;font-family:'Sarabun',sans-serif;font-size:14px;cursor:pointer">
           ✅ บันทึกหมายเหตุ
         </button>
       </div>
@@ -890,7 +957,7 @@
 
 <!-- ═══ IMPORT PAGE ═══ -->
 <div class="page" id="page-import">
-  <div style="background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.25);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+  <div style="background:rgba(39,174,96,0.08);border:1px solid rgba(39,174,96,0.2);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
     <div style="font-size:24px">✅</div>
     <div>
       <div style="font-size:14px;font-weight:700;color:var(--green)">โหลดข้อมูลสินค้าแล้ว</div>
@@ -1373,10 +1440,10 @@ function renderExpiry() {
   const other    = items.filter(i => i.daysLeft > i.threshold + 60).length;
 
   document.getElementById('expiry-stats').innerHTML = [
-    expired  ? `<div style="background:rgba(255,82,82,0.15);border:1px solid rgba(255,82,82,0.4);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--red)">🔴 หมดอายุแล้ว ${expired}</div>` : '',
-    critical ? `<div style="background:rgba(255,82,82,0.08);border:1px solid rgba(255,82,82,0.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--red)">🔴 ใกล้หมดอายุ: ${critical}</div>` : '',
-    warn     ? `<div style="background:rgba(255,215,64,0.08);border:1px solid rgba(255,215,64,0.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--yellow)">🟡 เฝ้าระวัง: ${warn}</div>` : '',
-    other    ? `<div style="background:rgba(0,212,255,0.08);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted)">อื่นๆ: ${other}</div>` : '',
+    expired  ? `<div style="background:rgba(231,76,60,0.10);border:1px solid rgba(231,76,60,0.3);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--red)">🔴 หมดอายุแล้ว ${expired}</div>` : '',
+    critical ? `<div style="background:rgba(231,76,60,0.06);border:1px solid rgba(231,76,60,0.25);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--red)">🔴 ใกล้หมดอายุ: ${critical}</div>` : '',
+    warn     ? `<div style="background:rgba(243,156,18,0.08);border:1px solid rgba(243,156,18,0.25);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:700;color:var(--yellow)">🟡 เฝ้าระวัง: ${warn}</div>` : '',
+    other    ? `<div style="background:rgba(231,76,60,0.06);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--muted)">อื่นๆ: ${other}</div>` : '',
   ].join('');
 
   if (!items.length) {
@@ -1411,7 +1478,7 @@ function renderExpiry() {
             <td style="font-size:12px">
               <div style="font-weight:700;color:var(--text)">${p.name}</div>
               <div style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace">${p.code}</div>
-              ${batchLabel ? `<div style="font-size:10px;color:#00d4ff;margin-top:2px">📦 ${batchLabel}</div>` : ''}
+              ${batchLabel ? `<div style="font-size:10px;color:#e74c3c;margin-top:2px">📦 ${batchLabel}</div>` : ''}
             </td>
             <td style="font-size:11px;color:var(--muted);white-space:nowrap">${lbl.date}</td>
             <td class="counted-cell" style="text-align:right">${p.batchQty}</td>
@@ -2032,14 +2099,14 @@ function renderList() {
 
           // แสดงปุ่ม ▼ กับทุกรายการที่มี batch (แม้มี 1 lot ก็แสดง)
           const expandIcon = hasBatches
-            ? `<span style="display:inline-block;color:#00d4ff;font-size:10px;margin-left:4px;cursor:pointer" onclick="event.stopPropagation();toggleBatch('${safeId}')">▼ ${batches.length} lot${batches.length>1?'s':''}</span>`
+            ? `<span style="display:inline-block;color:#e74c3c;font-size:10px;margin-left:4px;cursor:pointer" onclick="event.stopPropagation();toggleBatch('${safeId}')">▼ ${batches.length} lot${batches.length>1?'s':''}</span>`
             : '';
 
           // สร้างแถว batch ที่ซ่อนไว้ - ทำกับทุกรายการที่มี batch
           let batchRows = '';
           if (hasBatches) {
             const sortedBatches = [...batches].sort((a, b) => a.exp - b.exp);
-            batchRows = `<tr id="${safeId}" style="display:none;background:rgba(0,212,255,0.04)">
+            batchRows = `<tr id="${safeId}" style="display:none;background:rgba(231,76,60,0.04)">
               <td colspan="5" style="padding:6px 12px">
                 <div style="font-size:11px;color:var(--muted);margin-bottom:4px">📦 รายละเอียดแต่ละ Lot:</div>
                 <table style="width:100%;font-size:11px">
@@ -2054,7 +2121,7 @@ function renderList() {
                       <td style="padding:4px">Lot ${i+1}</td>
                       <td style="padding:4px;color:var(--muted)">${b.dateIn ? fmtLot(b.dateIn) : '—'}</td>
                       <td style="padding:4px;color:var(--muted)">${fmtExp(b.exp)}</td>
-                      <td style="padding:4px;text-align:right;font-weight:700;color:#00d4ff">${b.qty || 0}</td>
+                      <td style="padding:4px;text-align:right;font-weight:700;color:#e74c3c">${b.qty || 0}</td>
                     </tr>
                   `).join('')}
                 </table>
