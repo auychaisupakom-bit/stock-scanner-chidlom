@@ -979,11 +979,11 @@ B001,นมกล่อง,เครื่องดื่ม,120"></textarea>
 
   <!-- settings bar -->
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-    <div style="font-size:13px;color:var(--muted);white-space:nowrap">แจ้งเตือนเมื่อเหลือน้อยกว่า</div>
-    <input id="expiry-days" type="number" value="365" min="1" max="999"
-      style="width:72px;background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:7px 10px;color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;outline:none;text-align:center"
+    <div style="font-size:13px;color:var(--muted);white-space:nowrap">กำหนดเองเมื่อเหลือ</div>
+    <input id="expiry-days" type="number" value="0" min="0" max="9999" placeholder="auto"
+      style="width:84px;background:var(--surface);border:1px solid var(--accent);border-radius:10px;padding:7px 10px;color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;outline:none;text-align:center"
       oninput="renderExpiry()">
-    <div style="font-size:13px;color:var(--muted)">วัน</div>
+    <div style="font-size:13px;color:var(--muted)">วัน <span style="font-size:11px">(0 = ใช้เกณฑ์ตามรหัสยา)</span></div>
     <select id="expiry-sort" onchange="renderExpiry()"
       style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:7px 10px;color:var(--muted);font-size:13px;outline:none;margin-left:auto">
       <option value="date">เรียงตามวันหมดอายุ</option>
@@ -1268,7 +1268,7 @@ function expiryLabel(daysLeft, expDate, threshold) {
 }
 
 function renderExpiry() {
-  const threshold = parseInt(document.getElementById('expiry-days').value) || 365;
+  const userInput = parseInt(document.getElementById('expiry-days').value) || 0;
   const sortBy    = document.getElementById('expiry-sort').value;
   const now       = new Date();
 
@@ -1277,7 +1277,8 @@ function renderExpiry() {
   products.forEach(p => {
     const batches = (typeof BATCHES_MAP !== 'undefined') ? BATCHES_MAP[p.code] : null;
     const skuThreshold = (typeof getExpiryThreshold === 'function') ? getExpiryThreshold(p.code) : 300;
-    const effThreshold = Math.min(skuThreshold, threshold);
+    // ถ้า user ใส่ค่าเอง (>0) ใช้ค่า user; ถ้า 0 ใช้เกณฑ์ของ SKU
+    const effThreshold = userInput > 0 ? userInput : skuThreshold;
 
     if (batches && batches.length > 0) {
       batches.forEach((batch, idx) => {
@@ -1377,8 +1378,9 @@ function checkExpiryBanner(sku) {
   banner.style.display = 'none';
 
   const skuThreshold = (typeof getExpiryThreshold === 'function') ? getExpiryThreshold(sku) : 300;
-  const userThreshold = parseInt(document.getElementById('expiry-days')?.value) || 365;
-  const effectiveThreshold = Math.min(skuThreshold, userThreshold);
+  const userInput = parseInt(document.getElementById('expiry-days')?.value) || 0;
+  // ถ้า user ใส่ค่าเอง (>0) ใช้ค่า user; ถ้า 0 ใช้เกณฑ์ของ SKU
+  const effectiveThreshold = userInput > 0 ? userInput : skuThreshold;
   const now = new Date();
 
   // ฟอร์แมต Lot date เป็น dd/mm/yy
