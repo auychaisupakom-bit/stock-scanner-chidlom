@@ -1,8 +1,11 @@
 name: LINE Expiry Notification
 
 on:
+  # รันอัตโนมัติทุกวันที่ 1 และ 15 ของเดือน เวลา 9:00 น. (Bangkok = 02:00 UTC)
   schedule:
-    - cron: '0 2 1 * *'
+    - cron: '0 2 1,15 * *'
+
+  # เปิดให้กดรันเองได้จากหน้า Actions (ไว้ทดสอบ)
   workflow_dispatch:
 
 jobs:
