@@ -2040,24 +2040,18 @@ function renderList() {
           if (hasBatches) {
             const sortedBatches = [...batches].sort((a, b) => a.exp - b.exp);
             batchRows = `<tr id="${safeId}" style="display:none;background:rgba(0,212,255,0.04)">
-              <td colspan="5" style="padding:6px 8px">
-                <div style="font-size:11px;color:var(--muted);margin-bottom:4px">📦 รายละเอียดแต่ละ Lot:</div>
-                <table style="width:100%;font-size:11px;table-layout:fixed">
-                  <tr style="color:var(--muted)">
-                    <th style="text-align:left;padding:4px;width:42px">Lot</th>
-                    <th style="text-align:left;padding:4px">รับเข้า</th>
-                    <th style="text-align:left;padding:4px">หมดอายุ</th>
-                    <th style="text-align:right;padding:4px;width:48px">จำนวน</th>
-                  </tr>
-                  ${sortedBatches.map((b, i) => `
-                    <tr style="color:var(--text)">
-                      <td style="padding:4px">Lot ${i+1}</td>
-                      <td style="padding:4px;color:var(--muted)">${b.dateIn ? fmtLot(b.dateIn) : '—'}</td>
-                      <td style="padding:4px;color:var(--muted)">${fmtExp(b.exp)}</td>
-                      <td style="padding:4px;text-align:right;font-weight:700;color:#00d4ff">${b.qty || 0}</td>
-                    </tr>
-                  `).join('')}
-                </table>
+              <td colspan="5" style="padding:8px 10px">
+                <div style="font-size:11px;color:var(--muted);margin-bottom:6px">📦 รายละเอียดแต่ละ Lot:</div>
+                ${sortedBatches.map((b, i) => `
+                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;margin-bottom:4px;background:rgba(0,212,255,0.05);border-radius:6px;font-size:11px">
+                    <div style="flex:1;min-width:0">
+                      <span style="color:var(--accent);font-weight:700">Lot ${i+1}</span>
+                      <span style="color:var(--muted);margin-left:6px">รับ ${b.dateIn ? fmtLot(b.dateIn) : '—'}</span>
+                      <span style="color:var(--muted);margin-left:6px">หมด ${fmtExp(b.exp)}</span>
+                    </div>
+                    <div style="font-weight:700;color:#00d4ff;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:13px">${b.qty || 0} ชิ้น</div>
+                  </div>
+                `).join('')}
               </td>
             </tr>`;
           }
