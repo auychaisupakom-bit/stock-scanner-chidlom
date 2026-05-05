@@ -947,8 +947,8 @@ B001,นมกล่อง,เครื่องดื่ม,120"></textarea>
   <div style="display:flex;gap:8px;margin-bottom:14px">
     <input id="search-input" type="text" placeholder="🔍 ค้นหา..."
       style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-size:14px;outline:none;"
-      oninput="renderList()">
-    <select id="filter-status" onchange="renderList()"
+      oninput="resetListPagination()">
+    <select id="filter-status" onchange="resetListPagination()"
       style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;color:var(--muted);font-size:13px;outline:none;">
       <option value="all">ทั้งหมด</option>
       <option value="ok">✅ ตรง</option>
@@ -1983,6 +1983,10 @@ function showPreview() {
     </table>`;
 }
 
+// ตัวแปรเก็บจำนวนรายการที่จะแสดง (pagination)
+let listDisplayCount = 50;
+const LIST_PAGE_SIZE = 50;
+
 // ─────────────────────────────────────────
 // LIST
 // ─────────────────────────────────────────
@@ -2006,6 +2010,11 @@ function renderList() {
       || (fil === 'uncounted' && !counted);
     return matchQ && matchF;
   });
+
+  // Pagination: แสดงทีละ N รายการ
+  const totalItems = items.length;
+  const showingItems = items.slice(0, listDisplayCount);
+  const hasMore = totalItems > listDisplayCount;
 
   if (!items.length) {
     document.getElementById('list-container').innerHTML = `<div class="empty-state"><div class="em-icon">🔍</div><div class="em-text">ไม่พบรายการ</div></div>`;
@@ -2031,10 +2040,13 @@ function renderList() {
   };
 
   document.getElementById('list-container').innerHTML = `
+    <div style="font-size:11px;color:var(--muted);text-align:right;margin-bottom:6px">
+      แสดง ${showingItems.length} จาก ${totalItems} รายการ
+    </div>
     <div class="table-wrap">
       <table>
         <tr><th>รหัส</th><th>ชื่อ</th><th>ระบบ</th><th>นับ</th><th>ต่าง</th></tr>
-        ${items.map(p => {
+        ${showingItems.map(p => {
           const cnt  = counts[p.code];
           const sys  = parseInt(p.systemQty);
           const diff = (cnt !== undefined && !isNaN(sys)) ? cnt - sys : null;
@@ -2045,29 +2057,14 @@ function renderList() {
 
           // แสดงปุ่ม ▼ กับทุกรายการที่มี batch (แม้มี 1 lot ก็แสดง)
           const expandIcon = hasBatches
-            ? `<span style="display:inline-block;color:#00d4ff;font-size:10px;margin-left:4px;cursor:pointer" onclick="event.stopPropagation();toggleBatch('${safeId}')">▼ ${batches.length} lot${batches.length>1?'s':''}</span>`
+            ? `<span style="display:inline-block;color:#00d4ff;font-size:10px;margin-left:4px;cursor:pointer" onclick="event.stopPropagation();toggleBatch('${safeId}','${p.code}')">▼ ${batches.length} lot${batches.length>1?'s':''}</span>`
             : '';
 
-          // สร้างแถว batch ที่ซ่อนไว้ - ทำกับทุกรายการที่มี batch
-          let batchRows = '';
-          if (hasBatches) {
-            const sortedBatches = [...batches].sort((a, b) => a.exp - b.exp);
-            batchRows = `<tr id="${safeId}" style="display:none;background:rgba(0,212,255,0.04)">
-              <td colspan="5" style="padding:8px 10px">
-                <div style="font-size:11px;color:var(--muted);margin-bottom:6px">📦 รายละเอียดแต่ละ Lot:</div>
-                ${sortedBatches.map((b, i) => `
-                  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;margin-bottom:4px;background:rgba(0,212,255,0.05);border-radius:6px;font-size:11px">
-                    <div style="flex:1;min-width:0">
-                      <span style="color:var(--accent);font-weight:700">Lot ${i+1}</span>
-                      <span style="color:var(--muted);margin-left:6px">รับ ${b.dateIn ? fmtLot(b.dateIn) : '—'}</span>
-                      <span style="color:var(--muted);margin-left:6px">หมด ${fmtExp(b.exp)}</span>
-                    </div>
-                    <div style="font-weight:700;color:#00d4ff;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:13px">${b.qty || 0} ชิ้น</div>
-                  </div>
-                `).join('')}
-              </td>
-            </tr>`;
-          }
+          // แทนที่จะ pre-render batch detail ทั้งหมด → สร้าง placeholder ว่างไว้
+          // จะ render จริงตอนกดปุ่ม ▼ เท่านั้น (lazy load)
+          const batchRows = hasBatches
+            ? `<tr id="${safeId}" style="display:none"><td colspan="5" style="padding:0"></td></tr>`
+            : '';
 
           // ดูว่ารายการนี้มีหมายเหตุไหม
           const note = notes[p.code];
@@ -2084,14 +2081,72 @@ function renderList() {
           </tr>${batchRows}`;
         }).join('')}
       </table>
-    </div>`;
+    </div>
+    ${hasMore ? `
+      <button onclick="loadMoreList()" style="width:100%;margin-top:12px;padding:12px;background:var(--surface);border:1px solid var(--accent);border-radius:12px;color:var(--accent);font-family:'Sarabun',sans-serif;font-size:14px;font-weight:700;cursor:pointer">
+        ▼ โหลดเพิ่ม (เหลืออีก ${totalItems - listDisplayCount} รายการ)
+      </button>
+    ` : ''}`;
   renderUnknown();
 }
 
+// โหลดรายการเพิ่ม + เลื่อนลงไปดู
+function loadMoreList() {
+  listDisplayCount += LIST_PAGE_SIZE;
+  renderList();
+}
+
+// Reset pagination เมื่อค้นหาหรือ filter ใหม่
+function resetListPagination() {
+  listDisplayCount = LIST_PAGE_SIZE;
+  renderList();
+}
+
 // Toggle batch detail row
-function toggleBatch(id) {
+function toggleBatch(id, code) {
   const row = document.getElementById(id);
   if (!row) return;
+
+  // ถ้ายังไม่เคยแสดง (placeholder ว่าง) → render content ครั้งแรก
+  const td = row.querySelector('td');
+  if (code && td && td.children.length === 0) {
+    const batches = (typeof BATCHES_MAP !== 'undefined') ? BATCHES_MAP[code] : null;
+    if (batches && batches.length > 0) {
+      const fmtLot = (s) => {
+        if (!s) return '';
+        try {
+          const d = new Date(s);
+          if (isNaN(d)) return '';
+          return d.toLocaleDateString('th-TH', { year:'2-digit', month:'2-digit', day:'2-digit' });
+        } catch(e) { return ''; }
+      };
+      const fmtExp = (ts) => {
+        try {
+          const d = new Date(ts);
+          return d.toLocaleDateString('th-TH', { year:'numeric', month:'2-digit', day:'2-digit' });
+        } catch(e) { return '—'; }
+      };
+
+      row.style.background = 'rgba(0,212,255,0.04)';
+      td.style.padding = '8px 10px';
+
+      const sortedBatches = [...batches].sort((a, b) => a.exp - b.exp);
+      td.innerHTML = `
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">📦 รายละเอียดแต่ละ Lot:</div>
+        ${sortedBatches.map((b, i) => `
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 8px;margin-bottom:4px;background:rgba(0,212,255,0.05);border-radius:6px;font-size:11px">
+            <div style="flex:1;min-width:0">
+              <span style="color:var(--accent);font-weight:700">Lot ${i+1}</span>
+              <span style="color:var(--muted);margin-left:6px">รับ ${b.dateIn ? fmtLot(b.dateIn) : '—'}</span>
+              <span style="color:var(--muted);margin-left:6px">หมด ${fmtExp(b.exp)}</span>
+            </div>
+            <div style="font-weight:700;color:#00d4ff;white-space:nowrap;font-family:'JetBrains Mono',monospace;font-size:13px">${b.qty || 0} ชิ้น</div>
+          </div>
+        `).join('')}
+      `;
+    }
+  }
+
   row.style.display = row.style.display === 'none' ? '' : 'none';
 }
 
