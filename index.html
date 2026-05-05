@@ -1538,7 +1538,17 @@ function lookupCode(code) {
   document.getElementById('r-already-counted').style.display = 'none';
 
   const prevCount = counts[lookupKey];
-  document.getElementById('qty-input').value = prevCount !== undefined ? prevCount : 1;
+  // ถ้าเคยนับแล้วใช้ค่าเดิม, ถ้ายังไม่เคยนับใช้ systemQty (ยอดในคลัง)
+  // ถ้าเป็น unknown หรือไม่มี systemQty ให้เริ่มที่ 0
+  let initialQty = 0;
+  if (prevCount !== undefined) {
+    initialQty = prevCount;
+  } else if (!isUnknown && typeof currentProduct.systemQty === 'number') {
+    initialQty = currentProduct.systemQty;
+  } else if (!isUnknown && !isNaN(parseInt(currentProduct.systemQty))) {
+    initialQty = parseInt(currentProduct.systemQty);
+  }
+  document.getElementById('qty-input').value = initialQty;
   updateDiff();
 
   // เช็ควันหมดอายุ
