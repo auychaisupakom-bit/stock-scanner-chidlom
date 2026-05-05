@@ -186,7 +186,7 @@ else:
         if len(g['items']) > 8:
             parts.append(f'... และอีก {len(g["items"]) - 8} batch ในหมวดนี้')
 
-    parts.append(f'\n👉 ดูทั้งหมดที่:\n{HTML_URL}')
+    parts.append(f'\n💡 ตรวจสอบรายละเอียดในระบบนับสต๊อก')
     msg = '\n'.join(parts)
 
 if len(msg) > 4800:
