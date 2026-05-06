@@ -1146,6 +1146,72 @@
 .setup-card .select-arrow {
   right: 0 !important;
 }
+
+
+/* ===== FINAL PATCH: hard-separate first-screen icons and text ===== */
+.setup-card .field-wrap {
+  display: grid !important;
+  grid-template-columns: 28px minmax(0, 1fr) !important;
+  column-gap: 18px !important;
+  align-items: center !important;
+  min-height: 50px !important;
+}
+
+.setup-card .modern-field-icon {
+  grid-column: 1 !important;
+  width: 28px !important;
+  min-width: 28px !important;
+  max-width: 28px !important;
+  height: 28px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+}
+
+.setup-card .modern-field-icon svg {
+  width: 19px !important;
+  height: 19px !important;
+  flex: none !important;
+}
+
+.setup-card .clean-input,
+.setup-card .setup-select {
+  grid-column: 2 !important;
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding-left: 8px !important;
+  padding-right: 0 !important;
+  text-indent: 0 !important;
+  line-height: 1.35 !important;
+  height: 34px !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+.setup-card .select-wrap {
+  grid-template-columns: 28px minmax(0, 1fr) 22px !important;
+  padding-right: 0 !important;
+}
+
+.setup-card .select-wrap .setup-select {
+  grid-column: 2 !important;
+  padding-left: 8px !important;
+  padding-right: 0 !important;
+}
+
+.setup-card .select-arrow {
+  grid-column: 3 !important;
+  position: static !important;
+  transform: none !important;
+  justify-self: end !important;
+  align-self: center !important;
+}
+
 </style>
 </head>
 <body>
