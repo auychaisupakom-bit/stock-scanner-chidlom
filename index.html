@@ -1227,7 +1227,7 @@
     <div class="setup-card">
       <div class="setup-label">เลือกกล่อง/ชั้นเก็บ (ถ้ามี)</div>
       <div class="shelf-chips" id="shelf-chips">
-        <button type="button" class="shelf-chip active" data-shelf="ชั้น 1">ชั้น 1</button>
+        <button type="button" class="shelf-chip" data-shelf="ชั้น 1">ชั้น 1</button>
         <button type="button" class="shelf-chip" data-shelf="ชั้น 2">ชั้น 2</button>
         <button type="button" class="shelf-chip" data-shelf="ชั้น 3">ชั้น 3</button>
         <button type="button" class="shelf-chip" data-shelf="ชั้น 4">ชั้น 4</button>
@@ -3069,8 +3069,14 @@ if (products.length && (currentUser && currentZone)) showPreview();
     const shelfChips = document.querySelectorAll('.shelf-chip');
     shelfChips.forEach(chip => {
       chip.addEventListener('click', function () {
+        const wasActive = this.classList.contains('active');
+        // ถอด active จากทุกอันก่อน
         shelfChips.forEach(c => c.classList.remove('active'));
-        this.classList.add('active');
+        // ถ้าเดิมไม่ active → เปิด active
+        // ถ้าเดิม active แล้ว → ปล่อยไว้ (deselect)
+        if (!wasActive) {
+          this.classList.add('active');
+        }
       });
     });
   }
