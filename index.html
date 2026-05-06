@@ -1105,6 +1105,47 @@
   color: #7a1ed1 !important;
 }
 
+
+
+/* ===== PATCH: prevent first-screen icons from overlapping text ===== */
+.setup-card .field-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 18px !important;
+  min-height: 48px !important;
+}
+
+.setup-card .modern-field-icon {
+  flex: 0 0 34px !important;
+  width: 34px !important;
+  min-width: 34px !important;
+  height: 34px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-right: 0 !important;
+}
+
+.setup-card .modern-field-icon svg {
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.setup-card .clean-input,
+.setup-card .setup-select {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  padding-left: 0 !important;
+}
+
+.setup-card .select-wrap {
+  padding-right: 28px !important;
+}
+
+.setup-card .select-arrow {
+  right: 0 !important;
+}
 </style>
 </head>
 <body>
