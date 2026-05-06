@@ -1107,74 +1107,35 @@
 
 
 
-/* ===== PATCH: prevent first-screen icons from overlapping text ===== */
-.setup-card .field-wrap {
-  display: flex !important;
-  align-items: center !important;
-  gap: 18px !important;
-  min-height: 48px !important;
-}
-
-.setup-card .modern-field-icon {
-  flex: 0 0 34px !important;
-  width: 34px !important;
-  min-width: 34px !important;
-  height: 34px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin-right: 0 !important;
-}
-
-.setup-card .modern-field-icon svg {
-  width: 20px !important;
-  height: 20px !important;
-}
-
-.setup-card .clean-input,
-.setup-card .setup-select {
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  width: 100% !important;
-  padding-left: 0 !important;
-}
-
-.setup-card .select-wrap {
-  padding-right: 28px !important;
-}
-
-.setup-card .select-arrow {
-  right: 0 !important;
-}
-
-
-/* ===== FINAL PATCH: hard-separate first-screen icons and text ===== */
+/* ===== ICON + INPUT LAYOUT (final balanced version) ===== */
 .setup-card .field-wrap {
   display: grid !important;
-  grid-template-columns: 28px minmax(0, 1fr) !important;
-  column-gap: 18px !important;
+  grid-template-columns: 32px minmax(0, 1fr) !important;
+  column-gap: 14px !important;
   align-items: center !important;
   min-height: 50px !important;
 }
 
 .setup-card .modern-field-icon {
   grid-column: 1 !important;
-  width: 28px !important;
-  min-width: 28px !important;
-  max-width: 28px !important;
-  height: 28px !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  max-width: 32px !important;
+  height: 32px !important;
   margin: 0 !important;
   padding: 0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   overflow: visible !important;
+  filter: none !important;
 }
 
 .setup-card .modern-field-icon svg {
-  width: 19px !important;
-  height: 19px !important;
+  width: 20px !important;
+  height: 20px !important;
   flex: none !important;
+  display: block !important;
 }
 
 .setup-card .clean-input,
@@ -1184,23 +1145,24 @@
   width: 100% !important;
   min-width: 0 !important;
   margin: 0 !important;
-  padding-left: 8px !important;
+  padding-left: 4px !important;
   padding-right: 0 !important;
   text-indent: 0 !important;
-  line-height: 1.35 !important;
-  height: 34px !important;
+  line-height: 1.4 !important;
+  height: 36px !important;
   overflow: visible !important;
   box-sizing: border-box !important;
 }
 
 .setup-card .select-wrap {
-  grid-template-columns: 28px minmax(0, 1fr) 22px !important;
+  grid-template-columns: 32px minmax(0, 1fr) 22px !important;
+  column-gap: 14px !important;
   padding-right: 0 !important;
 }
 
 .setup-card .select-wrap .setup-select {
   grid-column: 2 !important;
-  padding-left: 8px !important;
+  padding-left: 4px !important;
   padding-right: 0 !important;
 }
 
