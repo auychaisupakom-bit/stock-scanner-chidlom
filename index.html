@@ -1678,6 +1678,12 @@ function startFirebaseListener() {
     Object.values(data).forEach(item => {
       if (item && item.code) {
         counts[item.code] = item.qty;
+        // เก็บ metadata ของคนที่นับจริง (ใครนับ ที่โซนไหน)
+        countMeta[item.code] = {
+          user: item.user || '',
+          zone: item.zone || '',
+          updatedAt: item.updatedAt || 0,
+        };
         // sync notes ด้วย
         if (item.noteType || item.noteText) {
           notes[item.code] = { type: item.noteType || '', text: item.noteText || '' };
@@ -1686,6 +1692,7 @@ function startFirebaseListener() {
     });
     try { localStorage.setItem('stock_counts', JSON.stringify(counts)); } catch(e) {}
     try { localStorage.setItem('stock_notes',  JSON.stringify(notes));  } catch(e) {}
+    try { localStorage.setItem('stock_meta',   JSON.stringify(countMeta));  } catch(e) {}
     updateBadge();
     // อัปเดต UI ถ้ากำลังดูรายการอยู่
     const listPage = document.getElementById('page-list');
@@ -1707,6 +1714,7 @@ function updateOnlineStatus() {
 let products = [];
 let counts   = {};
 let notes    = {};  // {code: {type: '', text: ''}}
+let countMeta = {}; // {code: {user, zone, updatedAt}} - เก็บข้อมูลคนที่นับจริง
 let scanning = false;
 let torchOn  = false;
 let currentTrack = null;
@@ -1720,6 +1728,7 @@ let mergedData = [];
 let unknownCounts = {};
 try { const u2 = localStorage.getItem('stock_unknown'); if(u2) unknownCounts = JSON.parse(u2); } catch(e) {}
 try { const n2 = localStorage.getItem('stock_notes'); if(n2) notes = JSON.parse(n2); } catch(e) {}
+try { const m2 = localStorage.getItem('stock_meta'); if(m2) countMeta = JSON.parse(m2); } catch(e) {}
 
 // Load from localStorage
 try {
@@ -2358,6 +2367,14 @@ function saveCount() {
     delete notes[code];
   }
   try { localStorage.setItem('stock_notes', JSON.stringify(notes)); } catch(e) {}
+
+  // เก็บ metadata ของคนที่นับ - เพื่อให้ report แสดงคนนับจริงได้ถูกต้อง
+  countMeta[code] = {
+    user: currentUser,
+    zone: currentZone,
+    updatedAt: Date.now(),
+  };
+  try { localStorage.setItem('stock_meta', JSON.stringify(countMeta)); } catch(e) {}
 
   if (currentProduct.unknown) {
     const name = document.getElementById('r-custom-name').value.trim() || '(ไม่ระบุชื่อ)';
