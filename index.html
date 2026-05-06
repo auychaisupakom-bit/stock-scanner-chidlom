@@ -1032,6 +1032,79 @@
   height: 24px;
   filter: drop-shadow(0 3px 8px rgba(255,255,255,0.22));
 }
+
+
+/* ===== WARM WHITE SETUP CARDS + MODERN LINE ICONS ===== */
+.setup-card {
+  background: rgba(255, 252, 248, 0.94) !important;
+  border: 1px solid rgba(255, 255, 255, 0.86) !important;
+  border-radius: 20px !important;
+  box-shadow:
+    0 16px 36px rgba(18, 10, 46, 0.20),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.08);
+  backdrop-filter: blur(14px) saturate(1.08);
+}
+
+.setup-card .setup-label {
+  color: #8f7f91 !important;
+  font-weight: 700 !important;
+}
+
+.setup-card .field-wrap {
+  min-height: 48px !important;
+  gap: 12px !important;
+}
+
+.modern-field-icon {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #b18485 !important;
+  opacity: 1 !important;
+  filter: none !important;
+}
+
+.modern-field-icon svg {
+  width: 22px !important;
+  height: 22px !important;
+  display: block !important;
+}
+
+.pin-icon {
+  color: #d85d6c !important;
+}
+
+.setup-card .clean-input,
+.setup-card .setup-select {
+  color: #2b2230 !important;
+  font-size: 17px !important;
+  font-weight: 800 !important;
+}
+
+.setup-card .clean-input::placeholder {
+  color: #b8a8ad !important;
+}
+
+.setup-card .select-arrow {
+  color: #aa8f97 !important;
+  font-size: 20px !important;
+}
+
+.shelf-chip {
+  background: rgba(255, 252, 248, 0.96) !important;
+  border-color: rgba(224, 210, 225, 0.95) !important;
+}
+
+.shelf-chip.active {
+  border-color: #b25cff !important;
+  background: linear-gradient(180deg, #fffaff 0%, #f1e1ff 100%) !important;
+  color: #7a1ed1 !important;
+}
+
 </style>
 </head>
 <body>
@@ -1050,7 +1123,12 @@
     <div class="setup-card">
       <div class="setup-label">ผู้บันทึก</div>
       <div class="field-wrap">
-        <span class="field-icon" aria-hidden="true">👤</span>
+        <span class="field-icon modern-field-icon user-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 12.2C14.35 12.2 16.25 10.3 16.25 7.95C16.25 5.6 14.35 3.7 12 3.7C9.65 3.7 7.75 5.6 7.75 7.95C7.75 10.3 9.65 12.2 12 12.2Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4.9 20.3C5.55 16.95 8.22 14.85 12 14.85C15.78 14.85 18.45 16.95 19.1 20.3" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
         <input class="setup-input clean-input" id="setup-name" type="text" placeholder="เช่น Fs" maxlength="30" autocomplete="name">
       </div>
     </div>
@@ -1058,7 +1136,12 @@
     <div class="setup-card">
       <div class="setup-label">เลือกโซน</div>
       <div class="field-wrap select-wrap">
-        <span class="field-icon" aria-hidden="true">📍</span>
+        <span class="field-icon modern-field-icon pin-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 21C12 21 18.4 15.45 18.4 9.85C18.4 6.32 15.53 3.45 12 3.45C8.47 3.45 5.6 6.32 5.6 9.85C5.6 15.45 12 21 12 21Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 12.05C13.22 12.05 14.2 11.07 14.2 9.85C14.2 8.63 13.22 7.65 12 7.65C10.78 7.65 9.8 8.63 9.8 9.85C9.8 11.07 10.78 12.05 12 12.05Z" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
         <select class="setup-select" id="setup-zone-select" aria-label="เลือกโซน">
           <option value="">เลือกโซน</option>
           <option value="โซน A">โซน A</option>
