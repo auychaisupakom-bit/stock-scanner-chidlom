@@ -968,13 +968,32 @@
 
 <!-- TOP BAR -->
 <div class="topbar" id="main-app" style="display:none">
-  <div>
-    <div class="topbar-title">📦 นับสต๊อก</div>
-    <div class="topbar-sub" id="topbar-sub-text">Handheld Scanner</div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <!-- Hamburger menu button -->
+    <button id="menu-btn" onclick="toggleMenu(event)"
+      style="background:transparent;border:none;color:var(--text);font-size:22px;padding:4px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:8px"
+      aria-label="เมนู">☰</button>
+    <div>
+      <div class="topbar-title">📦 นับสต๊อก</div>
+      <div class="topbar-sub" id="topbar-sub-text">Handheld Scanner</div>
+    </div>
   </div>
   <div style="display:flex;align-items:center;gap:8px">
     <span id="firebase-status" style="font-size:11px;color:var(--muted)">⏳ กำลังเชื่อม...</span>
     <div class="badge" id="count-badge">0 / 439</div>
+  </div>
+</div>
+
+<!-- Dropdown Menu (ซ่อนไว้ตอนเริ่มต้น) -->
+<div id="menu-dropdown" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9998" onclick="closeMenu()">
+  <div style="position:absolute;top:60px;left:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:6px;min-width:240px;box-shadow:0 10px 40px rgba(0,0,0,0.4);animation:slideUp 0.2s ease"
+    onclick="event.stopPropagation()">
+    <button onclick="changeUserZone()"
+      style="width:100%;text-align:left;background:transparent;border:none;color:var(--text);font-family:'Sarabun',sans-serif;font-size:14px;padding:12px 14px;cursor:pointer;border-radius:10px;display:flex;align-items:center;gap:10px"
+      onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='transparent'">
+      <span style="font-size:18px">👤</span>
+      <span>เปลี่ยนผู้นับ / โซน</span>
+    </button>
   </div>
 </div>
 <div class="zone-banner" id="zone-banner" style="display:none">
@@ -1450,6 +1469,49 @@ function selectZone(el, zone) {
   el.classList.add('selected');
   selectedZoneChip = zone;
   document.getElementById('setup-zone-custom').value = '';
+}
+
+// ─── HAMBURGER MENU ─────────────────────────────────
+function toggleMenu(e) {
+  if (e) e.stopPropagation();
+  const menu = document.getElementById('menu-dropdown');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+
+function closeMenu() {
+  const menu = document.getElementById('menu-dropdown');
+  if (menu) menu.style.display = 'none';
+}
+
+// กลับไปหน้า setup เพื่อเปลี่ยนชื่อ/โซน (ยอดนับยังอยู่ใน Firebase + localStorage)
+function changeUserZone() {
+  closeMenu();
+  // หยุดการสแกนถ้ากำลังเปิดกล้องอยู่
+  if (typeof stopScanning === 'function' && scanning) {
+    try { stopScanning(); } catch(e) {}
+  }
+
+  // ซ่อน app, แสดง setup screen
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('zone-banner').style.display = 'none';
+  document.getElementById('tabs-and-pages').style.display = 'none';
+  document.getElementById('setup-screen').style.display = 'flex';
+
+  // pre-fill ค่าเดิม
+  const nameEl = document.getElementById('setup-name');
+  if (nameEl) nameEl.value = currentUser || '';
+
+  // Re-select โซนเดิม (ถ้ามี)
+  document.querySelectorAll('.zone-chip').forEach(c => c.classList.remove('selected'));
+  if (selectedZoneChip) {
+    document.querySelectorAll('.zone-chip').forEach(c => {
+      if (c.textContent.trim() === selectedZoneChip) c.classList.add('selected');
+    });
+  }
+
+  // Scroll ขึ้นบน
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  showToast('💡 ยอดนับยังคงอยู่ - กดเริ่มเมื่อพร้อม', 'ok');
 }
 
 function startApp() {
