@@ -1659,11 +1659,13 @@ const db = firebase.database();
 // sync counts ขึ้น Firebase
 function syncToFirebase(code, qty, productName, zone, user, noteType, noteText) {
   const ref = db.ref('counts/' + code.replace(/[.#$/[\]]/g, '_'));
+  // สำคัญ: ห้าม fallback เป็น currentUser/currentZone อัตโนมัติ
+  // เพราะตอนกดซิงค์รวมจะทำให้ทุกแถวใน Excel กลายเป็นชื่อ/โซนของคนที่ login อยู่
   ref.set({
     code, qty,
     name: productName || '',
-    zone: zone || currentZone,
-    user: user || currentUser,
+    zone: zone || '',
+    user: user || '',
     noteType: noteType || '',
     noteText: noteText || '',
     updatedAt: Date.now()
@@ -2839,12 +2841,35 @@ function syncAllToFirebase() {
   let done = 0;
   items.forEach(code => {
     const prod = products.find(p => p.code === code);
-    syncToFirebase(code, counts[code], prod ? prod.name : '', currentZone, currentUser);
+    const meta = countMeta[code] || {};
+    const note = notes[code] || {};
+
+    // ใช้ชื่อผู้บันทึก/โซนของคนที่นับจริงจาก countMeta เท่านั้น
+    // ไม่ใช้ currentUser/currentZone เพื่อป้องกันข้อมูล Excel กลายเป็นชื่อคน login ทั้งหมด
+    syncToFirebase(
+      code,
+      counts[code],
+      prod ? prod.name : '',
+      meta.zone || '',
+      meta.user || '',
+      note.type || '',
+      note.text || ''
+    );
     done++;
     if (done === items.length) {
-      // sync unknown ด้วย
+      // sync unknown ด้วย โดยใช้ meta ของรายการนั้นถ้ามี
       Object.values(unknownCounts).forEach(u => {
-        syncToFirebase(u.code, u.qty, u.name, currentZone, currentUser);
+        const unknownMeta = countMeta[u.code] || {};
+        const unknownNote = notes[u.code] || {};
+        syncToFirebase(
+          u.code,
+          u.qty,
+          u.name,
+          unknownMeta.zone || '',
+          unknownMeta.user || '',
+          unknownNote.type || '',
+          unknownNote.text || ''
+        );
       });
       setTimeout(() => {
         desc.textContent = `✅ ซิงค์ ${items.length} รายการเสร็จแล้ว!`;
@@ -2877,7 +2902,17 @@ function exportCSV() {
     const note = notes[p.code] || {};
     const noteTypeLabelStr = noteTypeLabel[note.type || ''] || note.type || '';
     const noteTextStr = (note.text || '').replace(/[\r\n,]/g, ' ');  // กัน CSV เพี้ยน
-    rows.push([p.code, p.name, p.category, isNaN(sys) ? '' : sys, cnt ?? '', diff, status, currentZone, currentUser, noteTypeLabelStr, noteTextStr]);
+
+    // ใช้ user/zone ของคนที่นับจริงจาก countMeta เท่านั้น
+    // ถ้าไม่มี metadata ให้ปล่อยว่าง ไม่ fallback เป็นคนที่ login อยู่ เพื่อไม่ให้รายงาน Excel ผิดคน/ผิดโซน
+    const meta = countMeta[p.code] || {};
+    let rowZone = '';
+    let rowUser = '';
+    if (cnt !== undefined) {
+      rowZone = meta.zone || '';
+      rowUser = meta.user || '';
+    }
+    rows.push([p.code, p.name, p.category, isNaN(sys) ? '' : sys, cnt ?? '', diff, status, rowZone, rowUser, noteTypeLabelStr, noteTextStr]);
   });
 
   // CSV escape: ใส่ "..." รอบทุกค่า กัน comma ในข้อความ
