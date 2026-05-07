@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>นับสต๊อก · Scanner</title>
+<title>นับสต็อก · Scanner</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
@@ -1183,10 +1183,10 @@
   <div class="setup-shell">
 
     <div class="setup-hero">
-      <img src="./hero-stock.png" alt="นับสต๊อก" class="hero-illustration" onerror="this.style.display='none';document.querySelector('.setup-logo-fallback').style.display='flex';">
+      <img src="./hero-stock.png" alt="นับสต็อก" class="hero-illustration" onerror="this.style.display='none';document.querySelector('.setup-logo-fallback').style.display='flex';">
       <div class="setup-logo-fallback" style="display:none">💊</div>
-      <div class="setup-title">นับสต๊อก</div>
-      <div class="setup-sub">ระบบนับสต๊อกสินค้า<br>ร้านขายยา</div>
+      <div class="setup-title">นับสต็อก</div>
+      <div class="setup-sub">ระบบนับสต็อกสินค้า<br>ร้านขายยา</div>
     </div>
 
     <div class="setup-card">
@@ -1247,7 +1247,7 @@
           <path d="M13 13H15V15H13V13Z" fill="currentColor"/>
         </svg>
       </span>
-      <span>เริ่มนับสต๊อก</span>
+      <span>เริ่มนับสต็อก</span>
     </button>
 
     <div class="setup-footer-note">🛡️ ข้อมูลปลอดภัย ซิงค์อัตโนมัติด้วย Firebase</div>
@@ -1262,7 +1262,7 @@
       style="background:transparent;border:none;color:var(--text);font-size:22px;padding:4px 8px;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:8px"
       aria-label="เมนู">☰</button>
     <div>
-      <div class="topbar-title">📦 นับสต๊อก</div>
+      <div class="topbar-title">📦 นับสต็อก</div>
       <div class="topbar-sub" id="topbar-sub-text">Handheld Scanner</div>
     </div>
   </div>
@@ -2927,7 +2927,7 @@ function exportCSV() {
 
 function exportSummaryText() {
   const date = new Date().toLocaleDateString('th-TH');
-  let text = `📦 ผลนับสต๊อก วันที่ ${date}\n`;
+  let text = `📦 ผลนับสต็อก วันที่ ${date}\n`;
   text += '─'.repeat(30) + '\n';
 
   let ok = 0, diffList = [];
@@ -3086,7 +3086,7 @@ function exportMergedText() {
     }
   });
   const zones = [...new Set(mergedData.flatMap(r => r.zones))].join(', ');
-  let text = `📦 ผลนับสต๊อกรวม วันที่ ${date}\n🗂 โซนที่นับ: ${zones}\n${'─'.repeat(30)}\n`;
+  let text = `📦 ผลนับสต็อกรวม วันที่ ${date}\n🗂 โซนที่นับ: ${zones}\n${'─'.repeat(30)}\n`;
   text += `✅ ยอดตรง: ${ok} รายการ\n❌ ยอดต่าง: ${diffList.length} รายการ\n\n`;
   if (diffList.length) text += diffList.join('\n');
   navigator.clipboard.writeText(text).then(() => showToast('คัดลอกแล้ว!', 'ok')).catch(() => showToast('คัดลอกไม่ได้', 'err'));
