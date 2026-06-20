@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- ป้องกันเบราว์เซอร์ cache หน้านี้ไว้ - บังคับให้เช็คไฟล์ใหม่จาก server ทุกครั้ง -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>นับสต๊อก · Scanner</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1657,29 +1661,72 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 // ─────────────────────────────────────────
-// AUTO-RESET เมื่อขึ้นรอบนับใหม่
-// แต่ละครั้งที่อัปโหลดไฟล์ใหม่ขึ้น GitHub จะ bump ค่านี้
-// ทุกเครื่องที่เปิดแอปจะตรวจเทียบกับค่าที่จำไว้ใน localStorage
-// ถ้าไม่ตรง = รอบใหม่ → ล้างยอดนับทั้งหมด (ทั้ง Firebase กลาง + local)
-// ผู้ใช้/โซนยังจำไว้ ไม่ต้องกรอกใหม่
+// เริ่มรอบนับใหม่ - ต้องกดยืนยันเองเท่านั้น (ไม่ล้างอัตโนมัติแบบเงียบ)
+// เหตุผล: การล้างอัตโนมัติเสี่ยงมาก ถ้า index.html ถูกอัปเดตด้วยเหตุผลอื่น
+// (เช่น แก้ UI, แก้บัค) ระหว่างที่ยังนับสต๊อกไม่จบ ข้อมูลจะหายไปโดยไม่มีการเตือน
 // ─────────────────────────────────────────
 const STOCKTAKE_ROUND = '2026-06-20-chitlom';
-(function maybeResetForNewRound() {
+let pendingNewRound = false;
+(function checkForNewRound() {
   try {
     const last = localStorage.getItem('stock_round');
     if (last === STOCKTAKE_ROUND) return;  // รอบเดิม ไม่ทำอะไร
-    // ล้าง local (เก็บ stock_user / stock_zone ไว้)
+    if (last === null) {
+      // เปิดแอปครั้งแรกในเครื่องนี้ - ไม่มีของเก่าให้ล้าง ตั้งรอบไว้เงียบๆ
+      localStorage.setItem('stock_round', STOCKTAKE_ROUND);
+      return;
+    }
+    // มีรอบเก่าอยู่ และไม่ตรงกับรอบปัจจุบัน → รอให้ผู้ใช้ตัดสินใจเอง (ไม่ลบอัตโนมัติ)
+    pendingNewRound = true;
+  } catch(e) {
+    console.error('round check error:', e);
+  }
+})();
+
+// แสดง popup ถามผู้ใช้ว่าจะเริ่มรอบใหม่ (ล้างยอดนับ) หรือจะดูข้อมูลเดิมต่อ
+function showNewRoundPrompt() {
+  if (!pendingNewRound) return;
+  const banner = document.createElement('div');
+  banner.id = 'new-round-banner';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#ffd740;color:#1a1a1a;padding:12px 16px;z-index:10000;font-family:Sarabun,sans-serif;font-size:13px;box-shadow:0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap';
+  banner.innerHTML = `
+    <div style="flex:1;min-width:200px">⚠️ <b>มีข้อมูลสินค้าเวอร์ชั่นใหม่</b> — ถ้าต้องการล้างยอดนับเดิมเพื่อเริ่มรอบนับใหม่ กดปุ่มขวา ถ้ายังนับต่อจากเดิม กด "ไม่ใช่ตอนนี้"</div>
+    <div style="display:flex;gap:8px;flex-shrink:0">
+      <button onclick="dismissNewRoundPrompt()" style="background:transparent;border:1px solid #1a1a1a;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;color:#1a1a1a">ไม่ใช่ตอนนี้</button>
+      <button onclick="confirmNewRoundReset()" style="background:#1a1a1a;border:none;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;color:#ffd740;font-weight:700">เริ่มรอบใหม่ (ล้างยอดนับ)</button>
+    </div>`;
+  document.body.appendChild(banner);
+}
+
+function dismissNewRoundPrompt() {
+  // ผู้ใช้เลือกจะดูข้อมูลเดิมต่อ - จำไว้ว่า "เห็นแล้ว" รอบนี้ จะไม่เด้งซ้ำจนกว่าจะมีรอบใหม่อีก
+  pendingNewRound = false;
+  localStorage.setItem('stock_round', STOCKTAKE_ROUND);
+  const banner = document.getElementById('new-round-banner');
+  if (banner) banner.remove();
+  showToast('ใช้ข้อมูลเดิมต่อ - ยอดนับยังอยู่ครบ', 'ok');
+}
+
+function confirmNewRoundReset() {
+  if (!confirm('⚠️ ยืนยันล้างยอดนับทั้งหมดเพื่อเริ่มรอบนับใหม่?\n\nยอดนับปัจจุบันทั้งหมดจะถูกลบทิ้ง (ทั้งในเครื่องนี้และที่ Firebase กลาง)\nชื่อผู้นับ/โซน จะยังเก็บไว้\n\nการกระทำนี้ย้อนกลับไม่ได้')) {
+    return;
+  }
+  try {
     ['stock_counts','stock_notes','stock_meta','stock_unknown','stock_products'].forEach(k => {
       try { localStorage.removeItem(k); } catch(e) {}
     });
-    // ล้าง Firebase กลาง — เครื่องไหนเข้าก่อนล้างก็ได้ ผลเหมือนกัน
     try { db.ref('counts').remove(); } catch(e) {}
     localStorage.setItem('stock_round', STOCKTAKE_ROUND);
-    console.log('🔄 เริ่มรอบนับใหม่:', STOCKTAKE_ROUND);
+    pendingNewRound = false;
+    const banner = document.getElementById('new-round-banner');
+    if (banner) banner.remove();
+    showToast('🔄 เริ่มรอบนับใหม่แล้ว', 'ok');
+    setTimeout(() => location.reload(), 1000);
   } catch(e) {
     console.error('reset error:', e);
+    showToast('เกิดข้อผิดพลาด ลองใหม่อีกครั้ง', 'warn');
   }
-})();
+}
 
 // sync counts ขึ้น Firebase
 function syncToFirebase(code, qty, productName, zone, user, noteType, noteText) {
@@ -1871,6 +1918,7 @@ function startApp() {
   updateBadge();
   startFirebaseListener();
   updateOnlineStatus();
+  showNewRoundPrompt();
 }
 
 // If already set up, skip setup
@@ -1883,6 +1931,7 @@ if (currentUser && currentZone) {
   document.getElementById('banner-zone').textContent = currentZone;
   startFirebaseListener();
   updateOnlineStatus();
+  showNewRoundPrompt();
 }
 
 function save() {
